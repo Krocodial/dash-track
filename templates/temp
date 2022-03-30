@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: track-deployment
+  labels:
+    app: track
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: track
+  template:
+    metadata:
+      labels:
+        app: track
+    spec:
+      containers:
+      - name: track
+        image: dependencytrack/frontend
+        ports:
+        - containerPort: 8080
