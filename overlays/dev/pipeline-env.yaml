@@ -1,0 +1,10 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+    name: ceevee-pipeline
+spec:
+    finally:
+        - name: openshift-client
+          params:
+            - name: SCRIPT
+              value: oc create -k dev

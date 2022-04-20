@@ -1,0 +1,21 @@
+replacements:
+  - source:
+        kind: Secret
+        name: test
+        version: v1
+    targets: 
+        - select:
+            kind: Pipeline
+            name: ceevee-pipeline
+          fieldPaths:
+            - metadata.name 
+  - source:
+        kind: Secret
+        name: my-secrets
+        version: v1
+    targets: 
+        - select:
+            kind: Pipeline
+            name: ceevee-pipeline
+          fieldPaths:
+            - spec.finally.[name=openshift-client].params.[name=SCRIPT].value
