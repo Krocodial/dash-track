@@ -1,0 +1,62 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: ceevee-code-storage
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 20Mi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ceevee-pipeline
+spec:
+  finally:
+    - name: openshift-client
+      params:
+        - name: SCRIPT
+          value: oc create -k $(ENVIRONMENT)
+        - name: VERSION
+          value: latest
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: ceevee-code-storage
+        - name: kubeconfig-dir
+          workspace: ceevee-code-storage
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/Krocodial/dash-track.git'
+        - name: revision
+          value: HEAD
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: ceevee-code-storage
+  workspaces:
+    - name: ceevee-code-storage
