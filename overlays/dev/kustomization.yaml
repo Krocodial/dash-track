@@ -7,7 +7,7 @@ namePrefix: dev-
 patches:
   - patch: |-
       - op: replace
-        path: /spec/finally/0/params
+        path: /spec/tasks/1/params
         value: 
             - name: SCRIPT
               value: oc apply -k overlays/dev
