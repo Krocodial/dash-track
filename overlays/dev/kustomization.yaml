@@ -3,14 +3,14 @@ kind: Kustomization
 resources:
   - ./../../base
 namePrefix: dev-
-namespace: ab537b-dev
+#namespace: 461a32-dev
 patches:
   - patch: |-
       - op: replace
         path: /spec/finally/0/params
         value: 
             - name: SCRIPT
-              value: oc apply -k dev
+              value: oc apply -k overlays/dev
             - name: VERSION
               value: latest
     target:
