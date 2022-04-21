@@ -36,7 +36,7 @@ spec:
         - name: url
           value: 'https://github.com/Krocodial/dash-track.git'
         - name: revision
-          value: HEAD
+          value: pipe
         - name: submodules
           value: 'true'
         - name: depth
