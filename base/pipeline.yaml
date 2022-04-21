@@ -61,6 +61,85 @@ spec:
   workspaces:
     - name: ceevee-code-storage
 ---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template-dev-ceevee-pipeline
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: content-type
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        annotations: {}
+        generateName: dev-ceevee-pipeline-
+        labels:
+          tekton.dev/pipeline: dev-ceevee-pipeline
+      spec:
+        params: []
+        pipelineRef:
+          name: dev-ceevee-pipeline
+        resources: []
+        status: null
+        workspaces:
+          - name: ceevee-code-storage
+            persistentVolumeClaim:
+              claimName: dev-ceevee-code-storage
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  finalizers:
+    - eventlisteners.triggers.tekton.dev
+  generation: 1
+  name: event-listener-vetvu7
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: ClusterTriggerBinding
+          ref: github-push
+      template:
+        ref: trigger-template-dev-ceevee-pipeline
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: event-listener-461a32-dev
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+    eventlistener: event-listener-vetvu7
+  ownerReferences:
+    - apiVersion: triggers.tekton.dev/v1alpha1
+      kind: EventListener
+      name: event-listener-vetvu7
+spec:
+  ports:
+    - name: http-listener
+      protocol: TCP
+      port: 8080
+      targetPort: 8000
+  selector:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+    eventlistener: event-listener-vetvu7
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+status:
+  loadBalancer: {}
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -103,7 +182,7 @@ spec:
   host: event-listener-461a32-dev.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: dev-track-service
+    name: event-listener-461a32-dev
     weight: 100
   port:
     targetPort: 8000
@@ -114,3 +193,4 @@ status:
       routerName: default
       wildcardPolicy: None
       routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
+---
