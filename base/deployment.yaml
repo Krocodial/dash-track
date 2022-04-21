@@ -53,7 +53,7 @@ kind: Service
 metadata:
   name: api-service
 spec:
-  type: NodePort
+  #type: NodePort
   selector:
     app: dependencyapi
   ports:
@@ -67,7 +67,7 @@ kind: Service
 metadata:
   name: track-service
 spec:
-  type: NodePort
+  #type: NodePort
   selector:
     app: dependencytrack
   ports:
