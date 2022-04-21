@@ -15,21 +15,7 @@ kind: Pipeline
 metadata:
   name: ceevee-pipeline
 spec:
-  finally:
-    - name: openshift-client
-      params:
-        - name: SCRIPT
-          value: oc create -k $(ENVIRONMENT)
-        - name: VERSION
-          value: latest
-      taskRef:
-        kind: ClusterTask
-        name: openshift-client
-      workspaces:
-        - name: manifest-dir
-          workspace: ceevee-code-storage
-        - name: kubeconfig-dir
-          workspace: ceevee-code-storage
+  #finally: 
   tasks:
     - name: git-clone
       params:
@@ -57,6 +43,20 @@ spec:
         name: git-clone
       workspaces:
         - name: output
+          workspace: ceevee-code-storage
+    - name: openshift-client
+      params:
+        - name: SCRIPT
+          value: oc create -k $(ENVIRONMENT)
+        - name: VERSION
+          value: latest
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: ceevee-code-storage
+        - name: kubeconfig-dir
           workspace: ceevee-code-storage
   workspaces:
     - name: ceevee-code-storage
@@ -118,10 +118,6 @@ metadata:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
     eventlistener: event-listener-vetvu7
-  ownerReferences:
-    - apiVersion: triggers.tekton.dev/v1alpha1
-      kind: EventListener
-      name: event-listener-vetvu7
 spec:
   ports:
     - name: http-listener
