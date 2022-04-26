@@ -26,14 +26,6 @@ patches:
         path: /spec/tasks/0/workspaces/0
         value: 
             name: output
-            value: dev-ceevee-code-storage
-    target:
-      kind: Pipeline
-  - patch: |-
-      - op: replace
-        path: /spec/tasks/0/workspaces/0
-        value: 
-            name: output
             workspace: dev-ceevee-code-storage
     target:
       kind: Pipeline
