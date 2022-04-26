@@ -140,3 +140,31 @@ patches:
     target:
       kind: Route
       name: track-route
+  - patch: |-
+      - op: replace
+        path: /spec/selector/app
+        value: dev-dependencytrack
+    target:
+      kind: Service
+      name: track-service
+  - patch: |-
+      - op: replace
+        path: /metadata/labels/app
+        value: dev-dependencytrack
+    target:
+      kind: Deployment
+      name: dependency-track-deployment
+  - patch: |-
+      - op: replace
+        path: /spec/selector/matchLabels/app
+        value: dev-dependencytrack
+    target:
+      kind: Deployment
+      name: dependency-track-deployment
+  - patch: |-
+      - op: replace
+        path: /spec/template/metadata/labels/app
+        value: dev-dependencytrack
+    target:
+      kind: Deployment
+      name: dependency-track-deployment

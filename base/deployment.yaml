@@ -48,7 +48,7 @@ spec:
         - containerPort: 8080
         env:
         - name: API_BASE_URL
-          value: "http://localhost:30001"
+          value: "http://dev-api-service"
 ---
 apiVersion: v1
 kind: Service
