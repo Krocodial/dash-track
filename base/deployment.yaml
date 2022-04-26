@@ -19,8 +19,10 @@ spec:
         image: dependencytrack/apiserver
         resources:
           requests:
+            memory: "4Gb"
             cpu: "2"
           limits:
+            memory: "4Gb"
             cpu: "2"
         ports:
         - containerPort: 8080
@@ -131,9 +133,9 @@ spec:
   - from:
     - ipBlock:
         cidr: 184.66.242.159/32
-    - namespaceSelector:
-        matchLabels:
-          network.openshift.io/policy-group: ingress
+    #- namespaceSelector:
+    #    matchLabels:
+    #      network.openshift.io/policy-group: ingress
     - podSelector: 
         matchLabels:
             app: dependencytrack
