@@ -79,6 +79,7 @@ spec:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
+        generateName: ceevee-pipeline-
         labels:
           tekton.dev/pipeline: ceevee-pipeline
       spec:
