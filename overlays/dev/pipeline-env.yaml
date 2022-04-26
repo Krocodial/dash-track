@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-    name: ceevee-pipeline-test
+    name: ceevee-pipeline-testt
 spec:
     finally:
         - name: openshift-client
