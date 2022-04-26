@@ -4,7 +4,7 @@ metadata:
     name: ceevee-data
 spec:
     accessModes:
-        - ReadWriteMany
+        - ReadWriteOnce
     storageClassName: netapp-file-standard
     resources:
         requests:
@@ -32,6 +32,11 @@ spec:
             - mountPath: /data
               name: dev-ceevee-data
         image: dependencytrack/apiserver
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:h2:/data/.dependency-track/db
+          - name: ALPINE_DATA_DIRECTORY
+            value: /data/.dependency-track
         resources:
           requests:
             memory: "4.5Gi"
@@ -43,6 +48,8 @@ spec:
         - containerPort: 8080
       volumes:
         - name: dev-ceevee-data
+          persistentVolumeClaim:
+            claimName: ceevee-data
 ---
 apiVersion: apps/v1
 kind: Deployment
