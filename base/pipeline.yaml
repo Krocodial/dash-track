@@ -21,8 +21,8 @@ spec:
       params:
         - name: url
           value: 'https://github.com/Krocodial/dash-track.git'
-        - name: revision
-          value: pipe
+        #- name: revision
+        #  value: pipe
         - name: submodules
           value: 'true'
         - name: depth
@@ -46,10 +46,10 @@ spec:
           workspace: ceevee-code-storage
     - name: openshift-client
       params:
-        - name: SCRIPT
-          value: oc create -k $(ENVIRONMENT)
         - name: VERSION
           value: latest
+        #- name: SCRIPT
+        #  value: oc create -k $(ENVIRONMENT)
       taskRef:
         kind: ClusterTask
         name: openshift-client
@@ -94,7 +94,7 @@ apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   generation: 1
-  name: event-listener-vetvu7
+  name: event-listener
 spec:
   namespaceSelector: {}
   resources: {}
@@ -109,11 +109,11 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: event-listener-461a32
+  name: event-listener
   labels:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
-    eventlistener: event-listener-vetvu7
+    eventlistener: event-listener
 spec:
   ports:
     - name: http-listener
@@ -123,7 +123,7 @@ spec:
   selector:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
-    eventlistener: event-listener-vetvu7
+    eventlistener: event-listener
   type: ClusterIP
   sessionAffinity: None
   ipFamilies:
@@ -149,7 +149,7 @@ spec:
 kind: Ingress
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: test
+  name: pipeline-ingress
 spec:
   rules:
     - host: event-listener-461a32.apps.silver.devops.gov.bc.ca
