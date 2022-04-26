@@ -77,4 +77,44 @@ spec:
       port: 8080
       targetPort: 8080
       #nodePort: 30000
-      
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: track-ingress
+spec:
+  rules:
+    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: track-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: track-route
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+spec:
+  host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: track-service
+    weight: 100
+  port:
+    targetPort: 8000
+  wildcardPolicy: None
+status:
+  ingress:
+    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      routerName: default
+      wildcardPolicy: None
+      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
+---
