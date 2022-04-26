@@ -76,9 +76,9 @@ spec:
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
-      metadata:
-        labels:
-          tekton.dev/pipeline: ceevee-pipeline
+     # metadata:
+     #   labels:
+     #     tekton.dev/pipeline: ceevee-pipeline
       spec:
         params: []
         pipelineRef:
