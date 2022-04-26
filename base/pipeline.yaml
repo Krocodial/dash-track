@@ -108,32 +108,6 @@ spec:
       template:
         ref: trigger-template-ceevee-pipeline
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: event-listener
-  labels:
-    app.kubernetes.io/managed-by: EventListener
-    app.kubernetes.io/part-of: Triggers
-    eventlistener: event-listener
-spec:
-  ports:
-    - name: http-listener
-      protocol: TCP
-      port: 8080
-      targetPort: 8000
-  selector:
-    app.kubernetes.io/managed-by: EventListener
-    app.kubernetes.io/part-of: Triggers
-    eventlistener: event-listener
-  type: ClusterIP
-  sessionAffinity: None
-  ipFamilies:
-    - IPv4
-  ipFamilyPolicy: SingleStack
-status:
-  loadBalancer: {}
----
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

@@ -92,7 +92,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/to/name
-        value: dev-event-listener
+        value: el-dev-event-listener
     target:
       kind: Route
   - patch: |-
