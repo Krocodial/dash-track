@@ -42,7 +42,7 @@ spec:
         ports:
         - containerPort: 8080
       volumes:
-        - dev-ceevee-data
+        - name: dev-ceevee-data
 ---
 apiVersion: apps/v1
 kind: Deployment
