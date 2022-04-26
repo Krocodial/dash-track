@@ -45,6 +45,8 @@ spec:
         - name: output
           workspace: ceevee-code-storage
     - name: openshift-client
+      runAfter:
+        - git-clone
       params:
         - name: VERSION
           value: latest
