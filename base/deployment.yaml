@@ -26,7 +26,6 @@ spec:
             cpu: "4"
         ports:
         - containerPort: 8080
-      restartPolicy: OnFailure
 ---
 apiVersion: apps/v1
 kind: Deployment
