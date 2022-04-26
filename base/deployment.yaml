@@ -20,6 +20,8 @@ spec:
         resources:
           requests:
             cpu: "2"
+          limits:
+            cpu: "2"
         ports:
         - containerPort: 8080
 ---
