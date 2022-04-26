@@ -19,10 +19,10 @@ spec:
         image: dependencytrack/apiserver
         resources:
           requests:
-            memory: "4Gb"
+            memory: "4"
             cpu: "2"
           limits:
-            memory: "4Gb"
+            memory: "4"
             cpu: "2"
         ports:
         - containerPort: 8080
@@ -50,7 +50,7 @@ spec:
         - containerPort: 8080
         env:
         - name: API_BASE_URL
-          value: "http://dev-api-service"
+          value: "http://dev-api-service:8080"
 ---
 apiVersion: v1
 kind: Service
