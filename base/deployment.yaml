@@ -74,7 +74,7 @@ spec:
         - containerPort: 8080
         env:
         - name: API_BASE_URL
-          value: "http://dev-api-service:8080"
+          value: "https://dev-api-service:8080"
 ---
 apiVersion: v1
 kind: Service
@@ -165,4 +165,30 @@ spec:
             app: dependencytrack
   policyTypes:
   - Ingress
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-route
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+spec:
+  host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: track-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureTerminationPolicy: Redirect
+  wildcardPolicy: None
+status:
+  ingress:
+    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      routerName: default
+      wildcardPolicy: None
+      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
 ---
