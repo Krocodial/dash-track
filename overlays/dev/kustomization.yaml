@@ -4,10 +4,6 @@ resources:
   - ./../../base
 namePrefix: dev-
 #namespace: 461a32-dev
-vars:
-  - name: TEST
-    objref:
-      name: 
 patches:
   - patch: |-
       - op: add

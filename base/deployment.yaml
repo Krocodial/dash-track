@@ -1,7 +1,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
-    name: ceevee-data$(TEST)
+    name: ceevee-data
 spec:
     accessModes:
         - ReadWriteOnce
@@ -157,8 +157,8 @@ spec:
   podSelector: {}
   ingress:
   - from:
-    - ipBlock:
-        cidr: 184.66.242.159/32
+    #- ipBlock:
+    #    cidr: 184.66.242.159/32
     - namespaceSelector:
         matchLabels:
           network.openshift.io/policy-group: ingress
