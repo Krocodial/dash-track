@@ -157,8 +157,6 @@ spec:
   - from:
     - ipBlock:
         cidr: 184.66.242.159/32
-    - ipBlock:
-        cidr: 10.97.12.1/8
     #- namespaceSelector:
     #    matchLabels:
     #      network.openshift.io/policy-group: ingress
