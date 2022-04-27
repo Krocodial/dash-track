@@ -128,6 +128,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
+    certbot-managed: true
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
@@ -175,6 +176,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
+    certbot-managed: true
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
