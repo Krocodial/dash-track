@@ -126,8 +126,7 @@ apiVersion: route.openshift.io/v1
 metadata:
   name: track-route
   annotations:
-    kubernetes.io/tls-acme: "true"
-  #  haproxy.router.openshift.io/ip_whitelist: 184.66.242.159
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
@@ -173,6 +172,8 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: api-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
