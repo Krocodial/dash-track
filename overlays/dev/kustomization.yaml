@@ -161,3 +161,10 @@ patches:
     target:
       kind: Route
       name: api-route
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "https://api.dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca"
+    target:
+      kind: Deployment
+      name: dependency-track-deployment
