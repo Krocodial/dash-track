@@ -1,7 +1,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
-    name: ceevee-data
+    name: ceevee-data$(TEST)
 spec:
     accessModes:
         - ReadWriteOnce
@@ -125,6 +125,8 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: track-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159
   labels:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
@@ -157,9 +159,9 @@ spec:
   - from:
     - ipBlock:
         cidr: 184.66.242.159/32
-    #- namespaceSelector:
-    #    matchLabels:
-    #      network.openshift.io/policy-group: ingress
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
     - podSelector: 
         matchLabels:
             app: dependencytrack
