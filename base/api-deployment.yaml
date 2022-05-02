@@ -1,0 +1,124 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: ceevee-data
+spec:
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-api-deployment
+  labels:
+    app: dependencyapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencyapi
+  template:
+    metadata:
+      labels:
+        app: dependencyapi
+    spec:
+      containers:
+      - name: dependencyapi #requires 2 cores
+        volumeMounts:
+            - mountPath: /data
+              name: dev-ceevee-data
+        image: dependencytrack/apiserver
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:h2:/data/.dependency-track/db
+          - name: ALPINE_DATA_DIRECTORY
+            value: /data/.dependency-track
+        resources:
+          requests:
+            memory: "4.5Gi"
+            cpu: "2"
+          limits:
+            memory: "6Gi"
+            cpu: "4"
+        ports:
+        - containerPort: 8080
+      volumes:
+        - name: dev-ceevee-data
+          persistentVolumeClaim:
+            claimName: ceevee-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencyapi
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30001
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+status:
+  ingress:
+    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      routerName: default
+      wildcardPolicy: None
+      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencyapi
+  policyTypes:
+  - Ingress
