@@ -164,6 +164,9 @@ spec:
     - podSelector: 
         matchLabels:
             app: dependencytrack
+    - podSelector: 
+        matchLabels:
+            app: dependencyapi
   policyTypes:
   - Ingress
 ---
