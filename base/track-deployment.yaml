@@ -97,3 +97,19 @@ spec:
             app: dependencytrack
   policyTypes:
   - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencytrack
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress
