@@ -128,7 +128,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
-    certbot-managed: true
+    certbot-managed: 'true'
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
@@ -158,16 +158,31 @@ spec:
   podSelector: {}
   ingress:
   - from:
-    #- ipBlock:
-    #    cidr: 184.66.242.159/32
-    - namespaceSelector:
-        matchLabels:
-          network.openshift.io/policy-group: ingress
+    #- namespaceSelector:
+    #    matchLabels:
+    #      network.openshift.io/policy-group: ingress
     - podSelector: 
         matchLabels:
             app: dependencytrack
   policyTypes:
   - Ingress
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
 ---
 kind: Route
 apiVersion: route.openshift.io/v1
@@ -176,14 +191,14 @@ metadata:
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
-    certbot-managed: true
+    certbot-managed: 'true'
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
   host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: track-service
+    name: api-service
     weight: 100
   port:
     targetPort: 8080
