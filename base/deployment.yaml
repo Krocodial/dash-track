@@ -74,7 +74,7 @@ spec:
         - containerPort: 8080
         env:
         - name: API_BASE_URL
-          value: "https://dev-api-service:8080"
+          value: "https://dev-api-service"
 ---
 apiVersion: v1
 kind: Service
@@ -129,8 +129,6 @@ metadata:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
     certbot-managed: 'true'
-    app.kubernetes.io/managed-by: EventListener
-    app.kubernetes.io/part-of: Triggers
 spec:
   host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
@@ -195,8 +193,6 @@ metadata:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.0.0\16
   labels:
     certbot-managed: 'true'
-    app.kubernetes.io/managed-by: EventListener
-    app.kubernetes.io/part-of: Triggers
 spec:
   host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
