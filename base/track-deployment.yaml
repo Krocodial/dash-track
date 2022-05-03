@@ -58,8 +58,8 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: track-route
-  annotations:
-    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209
+  #annotations:
+  #  haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209
   labels:
     certbot-managed: 'true'
 spec:
@@ -74,12 +74,6 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
   wildcardPolicy: None
-status:
-  ingress:
-    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-      routerName: default
-      wildcardPolicy: None
-      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

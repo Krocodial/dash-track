@@ -158,10 +158,4 @@ spec:
   port:
     targetPort: 8000
   wildcardPolicy: None
-status:
-  ingress:
-    - host: event-listener-461a32.apps.silver.devops.gov.bc.ca
-      routerName: default
-      wildcardPolicy: None
-      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
 ---

@@ -102,13 +102,13 @@ patches:
     target:
       kind: Route
       name: event-listener
-  - patch: |-
-      - op: replace
-        path: /status/ingress/0/host
-        value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
-    target:
-      kind: Route
-      name: event-listener
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: event-listener
   - patch: |-
       - op: replace
         path: /spec/rules/0/host
@@ -137,13 +137,13 @@ patches:
     target:
       kind: Route
       name: track-route
-  - patch: |-
-      - op: replace
-        path: /status/ingress/0/host
-        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-    target:
-      kind: Route
-      name: track-route
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: track-route
   - patch: |-
       - op: replace
         path: /spec/host
