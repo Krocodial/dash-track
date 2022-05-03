@@ -74,7 +74,7 @@ spec:
     - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
-          - path: /api/v1/
+          - path: /
             pathType: Prefix
             backend:
               service:
@@ -88,6 +88,7 @@ metadata:
   name: api-route
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209
+    haproxy.router.openshift.io/rewrite-target: /
   labels:
     certbot-managed: 'true'
 spec:
