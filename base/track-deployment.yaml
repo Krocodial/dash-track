@@ -23,10 +23,9 @@ spec:
         - name: API_BASE_URL
           valueFrom:
             secretKeyRef:
-                name: dev-uri
-                key: API
-                optional: false
-          #value: "https://dev-api-service"
+              name: ceevee-secrets
+              key: api
+              optional: false
 ---
 apiVersion: v1
 kind: Service

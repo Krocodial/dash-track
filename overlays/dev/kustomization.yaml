@@ -4,10 +4,10 @@ resources:
   - ./../../base
 namePrefix: dev-
 #namespace: 461a32-dev
-secretGenerator:
-  - name: uri
-    envs:
-    - .secrets    
+#secretGenerator:
+#  - name: uri
+#    envs:
+#    - .secrets    
 patches:
   - patch: |-
       - op: add
