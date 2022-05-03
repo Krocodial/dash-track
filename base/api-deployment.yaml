@@ -92,6 +92,7 @@ metadata:
     certbot-managed: 'true'
 spec:
   host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  path: "/api/v1"
   to:
     kind: Service
     name: api-service
@@ -102,12 +103,12 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
   wildcardPolicy: None
-status:
-  ingress:
-    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-      routerName: default
-      wildcardPolicy: None
-      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
+#status:
+#  ingress:
+#    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+#      routerName: default
+#      wildcardPolicy: None
+#      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

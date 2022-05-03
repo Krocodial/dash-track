@@ -158,13 +158,13 @@ patches:
     target:
       kind: Route
       name: api-route
-  - patch: |-
-      - op: replace
-        path: /status/ingress/0/host
-        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-    target:
-      kind: Route
-      name: api-route
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: api-route
   - patch: |-
       - op: replace
         path: /spec/rules/0/host
