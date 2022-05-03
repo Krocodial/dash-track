@@ -19,13 +19,9 @@ spec:
         image: dependencytrack/frontend
         ports:
         - containerPort: 8080
-        env:
-        - name: API_BASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: ceevee-secrets
-              key: api
-              optional: false
+        envFrom:
+          - secretRef:
+            name: ceevee-secrets
 ---
 apiVersion: v1
 kind: Service
