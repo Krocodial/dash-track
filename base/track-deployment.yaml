@@ -21,7 +21,12 @@ spec:
         - containerPort: 8080
         env:
         - name: API_BASE_URL
-          value: "https://dev-api-service"
+          valueFrom:
+            secretKeyRef:
+                name: uri
+                key: API
+                optional: false
+          #value: "https://dev-api-service"
 ---
 apiVersion: v1
 kind: Service

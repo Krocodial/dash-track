@@ -2,7 +2,7 @@
 
 cat > payload.json <<__HERE__
 {
-  "project": "++++create a project & copy the UUID here++++",
+  "project": "0d81e80b-7011-4c08-95b4-07254c7c4a9a",
   "bom": "$(cat output.xml |base64 -w 0 -)"
 }
 __HERE__

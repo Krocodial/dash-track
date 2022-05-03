@@ -1,3 +1,5 @@
 *vs*
 argocd.exe
 *.sqlite
+*payload*
+*output*
