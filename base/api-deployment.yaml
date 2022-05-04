@@ -37,18 +37,6 @@ spec:
             value: jdbc:h2:/data/.dependency-track/db
           - name: ALPINE_DATA_DIRECTORY
             value: /data/.dependency-track
-          #- name: ALPINE_OIDC_ENABLED
-          #  value: true
-          #- name: ALPINE_OIDC_ISSUER
-          #  value: https://dev.oidc.gov.bc.ca/auth/realms/ichqx89w
-          #- name: ALPINE_OIDC_USERNAME_CLAIM
-          #  value: preferred_username
-          #- name: ALPINE_OIDC_TEAMS_CLAIM
-          #  value: groups
-          #- name: ALPINE_OIDC_USER_PROVISIONING
-          #  value: true
-          #- name: ALPINE_OIDC_TEAM_SYNCHRONIZATION
-          #  value: true
         resources:
           requests:
             memory: "4.5Gi"
@@ -102,7 +90,7 @@ apiVersion: route.openshift.io/v1
 metadata:
   name: api-route
   annotations:
-    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
     haproxy.router.openshift.io/rewrite-target: /
   labels:
     certbot-managed: 'true'
