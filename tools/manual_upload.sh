@@ -7,7 +7,7 @@ cat > payload.json <<__HERE__
 }
 __HERE__
 
-curl -X "PUT" "https://api.dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca/api/v1/bom" \
+curl -X "PUT" "https://dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca/api/v1/bom" \
      -H 'Content-Type: application/json' \
      -H 'X-API-Key: ...' \
      -d @payload.json \
