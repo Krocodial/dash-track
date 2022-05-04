@@ -58,8 +58,8 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: track-route
-  annotations:
-    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.160.0/24 204.103.160.129 206.120.0.0/16
+  #annotations:
+    #haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.160.0/24 204.103.160.129 206.120.0.0/16
   labels:
     certbot-managed: 'true'
 spec:
