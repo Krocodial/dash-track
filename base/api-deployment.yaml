@@ -37,6 +37,18 @@ spec:
             value: jdbc:h2:/data/.dependency-track/db
           - name: ALPINE_DATA_DIRECTORY
             value: /data/.dependency-track
+          - name: ALPINE_OIDC_ENABLED
+            value: true
+          - name: ALPINE_OIDC_ISSUER
+            value: https://dev.oidc.gov.bc.ca/auth/realms/ichqx89w
+          - name: ALPINE_OIDC_USERNAME_CLAIM
+            value: preferred_username
+          - name: ALPINE_OIDC_TEAMS_CLAIM
+            value: groups
+          - name: ALPINE_OIDC_USER_PROVISIONING
+            value: true
+          - name: ALPINE_OIDC_TEAM_SYNCHRONIZATION
+            value: true
         resources:
           requests:
             memory: "4.5Gi"
