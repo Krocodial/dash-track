@@ -26,6 +26,7 @@ jobs:
         with:
           input: base/api-deployment.yaml
           format: template
+          template: template/sarif.tpl
           output: kubesec-api-results.sarif
           exit-code: "0"
 
