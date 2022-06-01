@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-track-deployment
+  labels:
+    app: dependencytrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencytrack
+  template:
+    metadata:
+      labels:
+        app: dependencytrack
+    spec:
+      containers:
+      - name: dependencytrack #port in use
+        image: dependencytrack/frontend
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - secretRef:
+              name: ceevee-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: track-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencytrack
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30000
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: track-ingress
+spec:
+  rules:
+    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: track-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: track-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: track-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencytrack
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencytrack
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress

@@ -1,2 +1,4 @@
 resources:
-  - deployment.yaml
+    - pipeline.yaml
+    - api-deployment.yaml
+    - track-deployment.yaml
