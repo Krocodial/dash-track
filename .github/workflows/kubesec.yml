@@ -6,6 +6,8 @@
 name: Kubesec
 
 on:
+  push:
+    branches: [dev, staging, master ]
   pull_request:
     branches: [ staging, master ]
   schedule:
