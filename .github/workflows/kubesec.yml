@@ -21,19 +21,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: collect yaml
+        run: find . -type f -name "*.yaml" -exec sh -c "echo '---' | cat - {}" \; > all.yaml
+
       - name: Run kubesec scanner
         uses: controlplaneio/kubesec-action@43d0ddff5ffee89a6bb9f29b64cd865411137b14
         with:
-          input: base/api-deployment.yaml
-          format: template
-          template: template/sarif.tpl
-          output: kubesec-api-results.sarif
-          exit-code: "0"
+          input: all.yaml
 
-      - name: print
-        run: echo ::set-output name=kubesec-api-results.sarif::$(cat kubesec-api-results.sarif)
-
-      - name: Upload Kubesec scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: kubesec-api-results.sarif
+      #- name: Upload Kubesec scan results to GitHub Security tab
+      #  uses: github/codeql-action/upload-sarif@v2
+      #  with:
+      #    sarif_file: kubesec-api-results.sarif
