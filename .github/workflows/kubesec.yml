@@ -32,8 +32,6 @@ jobs:
 
       - name: print
         run: echo ::set-output name=kubesec-api-results.sarif::$(cat kubesec-api-results.sarif)
-        with:
-          sarif_file: kubesec-api-results.sarif
 
       - name: Upload Kubesec scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
