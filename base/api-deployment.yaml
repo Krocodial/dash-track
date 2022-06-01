@@ -4,7 +4,7 @@ metadata:
     name: ceevee-data
 spec:
     accessModes:
-        - ReadWriteOnce
+        - ReadWriteMany
     storageClassName: netapp-file-standard
     resources:
         requests:
@@ -40,7 +40,7 @@ spec:
         resources:
           requests:
             memory: "4.5Gi"
-            cpu: "2"
+            cpu: "1800M"
           limits:
             memory: "6Gi"
             cpu: "3"

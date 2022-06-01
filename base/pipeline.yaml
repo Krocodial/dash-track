@@ -2,6 +2,8 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
     name: ceevee-code-storage
+    labels:
+        app: fett-code-storage
 spec:
     accessModes:
         - ReadWriteMany
