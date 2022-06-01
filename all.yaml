@@ -1,0 +1,655 @@
+---
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: ceevee-data
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-api-deployment
+  labels:
+    app: dependencyapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencyapi
+  template:
+    metadata:
+      labels:
+        app: dependencyapi
+    spec:
+      containers:
+      - name: dependencyapi #requires 2 cores
+        volumeMounts:
+            - mountPath: /data
+              name: dev-ceevee-data
+        image: dependencytrack/apiserver
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:h2:/data/.dependency-track/db
+          - name: ALPINE_DATA_DIRECTORY
+            value: /data/.dependency-track
+        resources:
+          requests:
+            memory: "4.5Gi"
+            cpu: "1800M"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - secretRef:
+              name: ceevee-secrets
+      volumes:
+        - name: dev-ceevee-data
+          persistentVolumeClaim:
+            claimName: ceevee-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencyapi
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30001
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/rewrite-target: /
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  path: "/api/v1"
+  to:
+    kind: Service
+    name: api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+#status:
+#  ingress:
+#    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+#      routerName: default
+#      wildcardPolicy: None
+#      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.ca
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencyapi
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencyapi
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress---
+resources:
+    - pipeline.yaml
+    - api-deployment.yaml
+    - track-deployment.yaml---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: ceevee-code-storage
+    labels:
+        app: fett-code-storage
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 20Mi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ceevee-pipeline
+spec:
+  #finally: 
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/Krocodial/dash-track.git'
+        #- name: revision
+        #  value: pipe
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: ceevee-code-storage
+    - name: openshift-client
+      runAfter:
+        - git-clone
+      params:
+        - name: VERSION
+          value: latest
+        #- name: SCRIPT
+        #  value: oc create -k $(ENVIRONMENT)
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: ceevee-code-storage
+        - name: kubeconfig-dir
+          workspace: ceevee-code-storage
+  workspaces:
+    - name: ceevee-code-storage
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template-ceevee-pipeline
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: content-type
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: ceevee-pipeline-
+        labels:
+          tekton.dev/pipeline: ceevee-pipeline
+      spec:
+        params: []
+        pipelineRef:
+          name: ceevee-pipeline
+        resources: []
+        status: null
+        workspaces:
+          - name: ceevee-code-storage
+            persistentVolumeClaim:
+              claimName: ceevee-code-storage
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  generation: 1
+  name: event-listener
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: ClusterTriggerBinding
+          ref: github-push
+      template:
+        ref: trigger-template-ceevee-pipeline
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-openshift-ingress
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  podSelector: 
+    matchLabels:
+      eventlistener: dev-event-listener
+  policyTypes:
+  - Ingress
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: pipeline-ingress
+spec:
+  rules:
+    - host: event-listener-461a32.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: test
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: event-listener
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+spec:
+  host: event-listener-461a32.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: event-listener-461a32
+    weight: 100
+  port:
+    targetPort: 8000
+  wildcardPolicy: None
+------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-track-deployment
+  labels:
+    app: dependencytrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencytrack
+  template:
+    metadata:
+      labels:
+        app: dependencytrack
+    spec:
+      containers:
+      - name: dependencytrack #port in use
+        image: dependencytrack/frontend
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - secretRef:
+              name: ceevee-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: track-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencytrack
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30000
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: track-ingress
+spec:
+  rules:
+    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: track-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: track-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: track-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencytrack
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencytrack
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress---
+resources:
+  - ./overlays/dev
+  - ./overlays/staging
+  - ./overlays/production
+namePrefix: cluster-a----
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./../../base
+namePrefix: dev-
+#namespace: 461a32-dev
+#secretGenerator:
+#  - name: uri
+#    envs:
+#    - .secrets    
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/tasks/1/params/-
+        value: 
+            name: SCRIPT
+            value: oc apply -k overlays/dev
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: add
+        path: /spec/tasks/0/params/-
+        value: 
+            name: revision
+            value: pipe
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/0/workspaces/0
+        value: 
+            name: output
+            workspace: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/1/workspaces/0/workspace
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/1/workspaces/1/workspace
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/workspaces/0/name
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/pipelineRef/name
+        value: dev-ceevee-pipeline
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/workspaces/0/name
+        value: dev-ceevee-code-storage
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/workspaces/0/persistentVolumeClaim/claimName
+        value: dev-ceevee-code-storage
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/triggers/0/template/ref
+        value: dev-trigger-template-ceevee-pipeline
+    target:
+      kind: EventListener
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Ingress
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/http/paths/0/backend/service/name
+        value: dev-event-listener
+    target:
+      kind: Ingress
+      name: pipeline-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/host
+        value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Route
+      name: event-listener
+  - patch: |-
+      - op: replace
+        path: /spec/to/name
+        value: el-dev-event-listener
+    target:
+      kind: Route
+      name: event-listener
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: event-listener
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Ingress
+      name: track-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/http/paths/0/backend/service/name
+        value: dev-track-service
+    target:
+      kind: Ingress
+      name: track-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/host
+        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Route
+      name: track-route
+  - patch: |-
+      - op: replace
+        path: /spec/to/name
+        value: dev-track-service
+    target:
+      kind: Route
+      name: track-route
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: track-route
+  - patch: |-
+      - op: replace
+        path: /spec/host
+        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Route
+      name: api-route
+  - patch: |-
+      - op: replace
+        path: /spec/to/name
+        value: dev-api-service
+    target:
+      kind: Route
+      name: api-route
+  #- patch: |-
+  #    - op: replace
+  #      path: /status/ingress/0/host
+  #      value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  #  target:
+  #    kind: Route
+  #    name: api-route
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Ingress
+      name: api-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/http/paths/0/backend/service/name
+        value: dev-api-service
+    target:
+      kind: Ingress
+      name: api-ingress
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+    name: ceevee-pipeline-testt
+spec:
+    finally:
+        - name: openshift-client
+          params:
+            - name: SCRIPT
+              value: oc create -k dev
+---
+resources:
+  - ./../../base
+namePrefix: prod-
+namespace: production---
+resources:
+  - ./../../base
+namePrefix: stag-
+namespace: staging---
+test---
+version: "2"
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.0
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=0.0.0.0
+      - xpack.security.enabled=false
+      - cluster.name=hive
+      - script.inline=true
+      - thread_pool.index.queue_size=100000
+      - thread_pool.search.queue_size=100000
+      - thread_pool.bulk.queue_size=100000
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+  cortex:
+    image: thehiveproject/cortex:latest
+    ports:
+      - "0.0.0.0:9001:9001"
+  thehive:
+    image: thehiveproject/thehive:latest
+    depends_on:
+      - elasticsearch
+      - cortex
+    ports:
+      - "0.0.0.0:9000:9000"
