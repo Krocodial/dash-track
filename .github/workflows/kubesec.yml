@@ -3,13 +3,11 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Kubesec
+name: kubernetes Assessment
 
 on:
-  push:
-    branches: [dev, staging, master ]
   pull_request:
-    branches: [ staging, master ]
+    branches: [ master ]
   schedule:
     - cron: '18 9 * * 1'
 

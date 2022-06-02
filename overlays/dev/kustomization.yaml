@@ -22,7 +22,7 @@ patches:
         path: /spec/tasks/0/params/-
         value: 
             name: revision
-            value: pipe
+            value: dev
     target:
       kind: Pipeline
   - patch: |-
