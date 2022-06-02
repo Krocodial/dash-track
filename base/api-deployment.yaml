@@ -26,6 +26,8 @@ spec:
       labels:
         app: dependencyapi
     spec:
+      strategy: 
+        type: Recreate #recreate b/c the api is super heavy
       containers:
       - name: dependencyapi #requires 2 cores
         volumeMounts:

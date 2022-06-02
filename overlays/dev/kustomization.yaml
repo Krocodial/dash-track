@@ -179,3 +179,10 @@ patches:
     target:
       kind: Ingress
       name: api-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/accessModes/0
+        value: ReadWriteOnce
+    target:
+      kind: PersistentVolumeClaim
+      name: ceevee-data
