@@ -42,7 +42,7 @@ spec:
         resources:
           requests:
             memory: "4.5Gi"
-            cpu: "1800m"
+            cpu: "2"
           limits:
             memory: "6Gi"
             cpu: "3"
@@ -55,6 +55,8 @@ spec:
         - name: dev-ceevee-data
           persistentVolumeClaim:
             claimName: ceevee-data
+  strategy:
+    type: Recreate
 ---
 apiVersion: v1
 kind: Service
@@ -109,12 +111,6 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
   wildcardPolicy: None
-#status:
-#  ingress:
-#    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-#      routerName: default
-#      wildcardPolicy: None
-#      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.caa
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
