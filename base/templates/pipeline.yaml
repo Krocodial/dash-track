@@ -47,9 +47,36 @@ spec:
       workspaces:
         - name: output
           workspace: ceevee-code-storage
-    - name: openshift-client
+    - name: helm-upgrade-from-source
       runAfter:
         - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: helm-upgrade-from-source
+      params:
+        - name: charts_dir
+          value: base
+        - name: release_version
+          value: v1.0.0
+        - name: release_name
+          value: fett-helm
+        - name: release_namespace
+          value: ''
+        - name: overwrite_values
+          value: ''
+        - name: values_file
+          value: overlays/dev/values.yaml
+        - name: helm_image
+          value: >-
+            docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+        - name: upgrade_extra_params
+          value: ''
+      workspaces:
+      - name: output
+        workspace: dev-ceevee-code-storage
+    - name: openshift-client
+      runAfter:
+        - helm-upgrade-from-source
       params:
         - name: VERSION
           value: latest

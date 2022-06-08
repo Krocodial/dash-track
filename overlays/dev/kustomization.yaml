@@ -11,7 +11,7 @@ namePrefix: dev-
 patches:
   - patch: |-
       - op: add
-        path: /spec/tasks/1/params/-
+        path: /spec/tasks/2/params/-
         value: 
             name: SCRIPT
             value: helm template base -f overlays/dev/values.yaml > base/fett.yaml | oc apply -k overlays/dev
@@ -35,13 +35,13 @@ patches:
       kind: Pipeline
   - patch: |-
       - op: replace
-        path: /spec/tasks/1/workspaces/0/workspace
+        path: /spec/tasks/2/workspaces/0/workspace
         value: dev-ceevee-code-storage
     target:
       kind: Pipeline
   - patch: |-
       - op: replace
-        path: /spec/tasks/1/workspaces/1/workspace
+        path: /spec/tasks/2/workspaces/1/workspace
         value: dev-ceevee-code-storage
     target:
       kind: Pipeline
