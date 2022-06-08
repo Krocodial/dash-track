@@ -54,7 +54,7 @@ spec:
         - name: VERSION
           value: latest
         #- name: SCRIPT
-        #  value: oc create -k $(ENVIRONMENT)
+        #  value: oc create -k {{.Values.ENVIRONMENT}}
       taskRef:
         kind: ClusterTask
         name: openshift-client

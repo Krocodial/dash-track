@@ -1,6 +1,7 @@
 resources:
-    - pipeline.yaml
-    - api-deployment.yaml
-    - track-deployment.yaml
-    - certbot.bc.yaml
-    - certbot.dc.yaml
+    - fett.yaml
+    #- pipeline.yaml
+    #- api-deployment.yaml
+    #- track-deployment.yaml
+    #- certbot.bc.yaml
+    #- certbot.dc.yaml

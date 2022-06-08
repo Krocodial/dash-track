@@ -14,7 +14,7 @@ patches:
         path: /spec/tasks/1/params/-
         value: 
             name: SCRIPT
-            value: oc apply -k overlays/dev
+            value: helm template base -f overlays/dev/values.yaml > base/fett.yaml | oc apply -k overlays/dev
     target:
       kind: Pipeline
   - patch: |-

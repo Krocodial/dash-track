@@ -26,13 +26,13 @@ spec:
       labels:
         app: dependencyapi
     spec:
-      strategy: 
-        type: Recreate #recreate b/c the api is super heavy
       containers:
       - name: dependencyapi #requires 2 cores
         volumeMounts:
             - mountPath: /data
               name: dev-ceevee-data
+        #strategy: 
+        #  type: Recreate #recreate b/c the api is super heavy
         image: dependencytrack/apiserver
         env:
           - name: ALPINE_DATABASE_URL
