@@ -14,6 +14,50 @@ spec:
             storage: 20Mi
 ---
 apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm
+spec:
+  description: >-
+    Custom task to perform helm templating
+  params:
+    - name: charts_dir
+      description: The directory in source that contains the helm chart
+    - name: release_version
+      description: The helm release version in semantic versioning format
+      default: "v1.0.0"
+    - name: release_name
+      description: The helm release name
+      default: "helm-release"
+    - name: release_namespace
+      description: The helm release namespace
+      default: ""
+    - name: overwrite_values
+      description: "Specify the values you want to overwrite, comma separated: autoscaling.enabled=true,replicas=1"
+      default: ""
+    - name: values_file
+      description: "The values file to be used"
+      default: "values.yaml"
+    - name: helm_image
+      description: "helm image to be used"
+      default: "docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae" #tag: v3.6.0
+    - name: upgrade_extra_params
+      description: "Extra parameters passed for the helm upgrade command"
+      default: ""
+  workspaces:
+    - name: source
+  steps:
+    - name: template
+      image: $(params.helm_image)
+      workingDir: /workspace/source
+      script: |
+        echo current installed helm releases
+        helm list --namespace "$(params.release_namespace)"
+
+        echo templating helm chart...
+        helm template base -f "$(params.values_file)" > base/fett.yaml
+---
+apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: ceevee-pipeline
@@ -46,13 +90,13 @@ spec:
         name: git-clone
       workspaces:
         - name: output
-          workspace: ceevee-code-storage
-    - name: helm-upgrade-from-source
+          workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+    - name: custom-helm
       runAfter:
         - git-clone
       taskRef:
-        kind: ClusterTask
-        name: helm-upgrade-from-source
+        kind: Task
+        name: custom-helm
       params:
         - name: charts_dir
           value: base
@@ -65,7 +109,7 @@ spec:
         - name: overwrite_values
           value: ''
         - name: values_file
-          value: overlays/dev/values.yaml
+          value: overlays/{{.Values.ENVIRONMENT}}/values.yaml
         - name: helm_image
           value: >-
             docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
@@ -73,10 +117,10 @@ spec:
           value: ''
       workspaces:
       - name: output
-        workspace: dev-ceevee-code-storage
+        workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
     - name: openshift-client
       runAfter:
-        - helm-upgrade-from-source
+        - custom-helm
       params:
         - name: VERSION
           value: latest
