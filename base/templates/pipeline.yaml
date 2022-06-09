@@ -212,7 +212,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{.Values.ENVIRONMENT}}-event-listener
+                name: el-{{.Values.ENVIRONMENT}}-event-listener
                 port:
                   number: 80
 ---
@@ -227,7 +227,7 @@ spec:
   host: {{.Values.ENVIRONMENT}}-ceevee-pipeline.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: {{.Values.ENVIRONMENT}}-event-listener
+    name: el-{{.Values.ENVIRONMENT}}-event-listener
     weight: 100
   port:
     targetPort: 8000
