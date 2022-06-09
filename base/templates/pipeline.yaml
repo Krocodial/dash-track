@@ -135,7 +135,7 @@ spec:
         - name: kubeconfig-dir
           workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
   workspaces:
-    - workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+    - name: {{.Values.ENVIRONMENT}}-ceevee-code-storage
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate

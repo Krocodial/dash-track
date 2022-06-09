@@ -25,7 +25,6 @@ patches:
             value: dev
     target:
       kind: Pipeline
-
   #- patch: |-
   #    - op: replace
   #      path: /status/ingress/0/host
