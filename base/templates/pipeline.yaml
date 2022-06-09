@@ -116,7 +116,7 @@ spec:
         - name: upgrade_extra_params
           value: ''
       workspaces:
-      - name: output
+      - name: source
         workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
     - name: openshift-client
       runAfter:
