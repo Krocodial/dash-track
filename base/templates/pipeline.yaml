@@ -99,7 +99,7 @@ spec:
         name: custom-helm
       params:
         - name: charts_dir
-          value: base
+          value: .
         - name: release_version
           value: v1.0.0
         - name: release_name
@@ -135,7 +135,7 @@ spec:
         - name: kubeconfig-dir
           workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
   workspaces:
-    - name: ceevee-code-storage
+    - workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
