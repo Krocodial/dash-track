@@ -25,7 +25,83 @@ patches:
             value: dev
     target:
       kind: Pipeline
-
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/0/workspaces/0
+        value: 
+            name: output
+            workspace: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/2/workspaces/0/workspace
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/tasks/2/workspaces/1/workspace
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/workspaces/0/name
+        value: dev-ceevee-code-storage
+    target:
+      kind: Pipeline
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/pipelineRef/name
+        value: dev-ceevee-pipeline
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/workspaces/0/name
+        value: dev-ceevee-code-storage
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/resourcetemplates/0/spec/workspaces/0/persistentVolumeClaim/claimName
+        value: dev-ceevee-code-storage
+    target:
+      kind: TriggerTemplate
+  - patch: |-
+      - op: replace
+        path: /spec/triggers/0/template/ref
+        value: dev-trigger-template-ceevee-pipeline
+    target:
+      kind: EventListener
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Ingress
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/http/paths/0/backend/service/name
+        value: dev-event-listener
+    target:
+      kind: Ingress
+      name: pipeline-ingress
+  - patch: |-
+      - op: replace
+        path: /spec/host
+        value: dev-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+    target:
+      kind: Route
+      name: event-listener
+  - patch: |-
+      - op: replace
+        path: /spec/to/name
+        value: el-dev-event-listener
+    target:
+      kind: Route
+      name: event-listener
   #- patch: |-
   #    - op: replace
   #      path: /status/ingress/0/host
