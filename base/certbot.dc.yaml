@@ -76,7 +76,7 @@ objects:
                   persistentVolumeClaim:
                     claimName: certbot
       schedule: "${CRON_SCHEDULE}"
-      suspend: "${CRON_SUSPEND}"
+      suspend: false
 
 parameters:
   - name: CERTBOT_DEBUG
@@ -125,7 +125,7 @@ parameters:
   - name: CRON_SUSPEND
     description: Suspend cronjob
     required: true
-    value: "false"
+    value: false
     # In test environments, you might want to create the cronjob for consistency, but suspend it
 
   - name: IMAGE_REGISTRY
