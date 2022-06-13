@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       labels:
-        service: postgres
+        name: postgres
     spec:
       containers:
         - name: postgres
