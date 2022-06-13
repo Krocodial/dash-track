@@ -60,7 +60,7 @@ spec:
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: ceevee-pipeline
+  name: fett-pipeline
 spec:
   #finally: 
   tasks:
