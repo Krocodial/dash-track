@@ -46,10 +46,10 @@ patches:
   #  target:
   #    kind: Route
   #    name: api-route
-  - patch: |-
-      - op: replace
-        path: /spec/accessModes/0
-        value: ReadWriteOnce
-    target:
-      kind: PersistentVolumeClaim
-      name: ceevee-data
+  #- patch: |-
+  #    - op: replace
+  #      path: /spec/accessModes/0
+  #      value: ReadWriteOnce
+  #  target:
+  #    kind: PersistentVolumeClaim
+  #    name: ceevee-data

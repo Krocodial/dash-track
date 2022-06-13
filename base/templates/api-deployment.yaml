@@ -1,14 +1,48 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
-    name: ceevee-data
+    name: fett-data
 spec:
     accessModes:
         - ReadWriteMany
     storageClassName: netapp-file-standard
     resources:
         requests:
-            storage: 30Gi
+            storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        service: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:10.1
+          ports:
+            - containerPort: 5432
+          envFrom:
+          - secretRef:
+              name: postgres-configuration
+          env:
+            - name: POSTGRES_DB
+              value: db0
+          #  - name: POSTGRES_USER
+          #    value: mendix
+          #  - name: POSTGRES_PASSWORD
+          #    value: mendix
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data"
+              name: {.Values.ENVDASH}fett-data
+      volumes:
+        - name: {.Values.ENVDASH}fett-data
+          persistentVolumeClaim:
+            claimName: fett-data
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,17 +62,17 @@ spec:
     spec:
       containers:
       - name: dependencyapi #requires 2 cores
-        volumeMounts:
-            - mountPath: /data
-              name: dev-ceevee-data
+      #  volumeMounts:
+      #      - mountPath: /data
+      #        name: dev-ceevee-data
         #strategy: 
         #  type: Recreate #recreate b/c the api is super heavy
         image: dependencytrack/apiserver
-        env:
-          - name: ALPINE_DATABASE_URL
-            value: jdbc:h2:/data/.dependency-track/db
-          - name: ALPINE_DATA_DIRECTORY
-            value: /data/.dependency-track
+        #env:
+        #  - name: ALPINE_DATABASE_URL
+        #    value: jdbc:h2:/data/.dependency-track/db
+        #  - name: ALPINE_DATA_DIRECTORY
+        #    value: /data/.dependency-track
         resources:
           requests:
             memory: "4.5Gi"
@@ -51,10 +85,12 @@ spec:
         envFrom:
           - configMapRef:
               name: oidc-configuration
-      volumes:
-        - name: dev-ceevee-data
-          persistentVolumeClaim:
-            claimName: ceevee-data
+          - secretRef:
+              name: postgres-configuration
+      #volumes:
+      #  - name: {{.Values.ENVDASH}}ceevee-data
+          #persistentVolumeClaim:
+          #  claimName: ceevee-data
   strategy:
     type: Recreate
 ---
