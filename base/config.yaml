@@ -9,7 +9,7 @@ parameters:
   value: fett
 - name: DATABASE_USER
   required: true
-  value: classy
+  value: fett
 - name: DATABASE_PASSWORD
   generate: expression
   from: "[\\w]{50}" #generate password when processing template
