@@ -121,12 +121,6 @@ parameters:
     value: 15 12 * * 1,4
     # Every Monday & Thursday - https://crontab.guru/#0_0_*_*_1,4
 
-  - name: CRON_SUSPEND
-    description: Suspend cronjob
-    required: true
-    value: false
-    # In test environments, you might want to create the cronjob for consistency, but suspend it
-
   - name: IMAGE_REGISTRY
     description: Image Registry
     required: true
