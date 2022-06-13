@@ -78,14 +78,14 @@ metadata:
   name: api-ingress
 spec:
   rules:
-    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: api-service
+                name: {{.Values.ENVDASH}}api-service
                 port:
                   number: 80
 ---
@@ -99,11 +99,11 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   path: "/api/v1"
   to:
     kind: Service
-    name: api-service
+    name: {{.Values.ENVDASH}}api-service
     weight: 100
   port:
     targetPort: 8080
