@@ -157,7 +157,7 @@ spec:
         - name: VERSION
           value: latest
         - name: SCRIPT
-          value: oc process -f "https://raw.githubusercontent.com/BCDevOps/certbot/master/openshift/certbot.dc.yaml" -p CERTBOT_EMAIL=Louis.kraak@gov.bc.ca | oc apply -f -
+          value: oc process -f base/certbot.dc.yaml | oc apply -f -
       taskRef:
         kind: ClusterTask
         name: openshift-client
