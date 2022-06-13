@@ -76,7 +76,6 @@ objects:
                   persistentVolumeClaim:
                     claimName: certbot
       schedule: "${CRON_SCHEDULE}"
-      suspend: false
 
 parameters:
   - name: CERTBOT_DEBUG
