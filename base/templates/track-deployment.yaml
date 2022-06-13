@@ -20,8 +20,8 @@ spec:
         ports:
         - containerPort: 8080
         envFrom:
-          - secretRef:
-              name: ceevee-secrets
+          - configMapRef:
+              name: oidc-configuration
 ---
 apiVersion: v1
 kind: Service

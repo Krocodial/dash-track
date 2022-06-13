@@ -49,8 +49,8 @@ spec:
         ports:
         - containerPort: 8080
         envFrom:
-          - secretRef:
-              name: ceevee-secrets
+          - configMapRef:
+              name: oidc-configuration
       volumes:
         - name: dev-ceevee-data
           persistentVolumeClaim:

@@ -3,3 +3,6 @@ argocd.exe
 *.sqlite
 *payload*
 *output*
+fett.yaml
+.secret*
+all.yaml

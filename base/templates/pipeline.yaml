@@ -125,7 +125,7 @@ spec:
         - name: VERSION
           value: latest
         - name: SCRIPT
-          value: oc apply -k overlays/{{.Values.ENVIRONMENT}}
+          value: oc create base/configmap.yaml | oc apply -k overlays/{{.Values.ENVIRONMENT}}
       taskRef:
         kind: ClusterTask
         name: openshift-client
