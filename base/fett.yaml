@@ -102,20 +102,20 @@ data:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
-    name: ceevee-data
+    name: fett-data
 spec:
     accessModes:
         - ReadWriteMany
     storageClassName: netapp-file-standard
     resources:
         requests:
-            storage: 30Gi
+            storage: 10Gi
 ---
 # Source: base/templates/pipeline.yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata: 
-    name: ceevee-code-storage
+    name: fett-code-storage
     labels:
         app: fett-code-storage
 spec:
@@ -160,6 +160,42 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres
+          ports:
+          - containerPort: 5432
+          envFrom:
+          - secretRef:
+              name: postgres-configuration
+          env:
+          - name: POSTGRES_DB
+            value: db0
+          volumeMounts:
+          - mountPath: "/var/lib/postgresql/data:z"
+            name: dev-fett-data
+      volumes:
+        - name: dev-fett-data
+          persistentVolumeClaim:
+            claimName: fett-data
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: dependency-api-deployment
   labels:
     app: dependencyapi
@@ -175,33 +211,37 @@ spec:
     spec:
       containers:
       - name: dependencyapi #requires 2 cores
-        volumeMounts:
-            - mountPath: /data
-              name: dev-ceevee-data
+      #  volumeMounts:
+      #      - mountPath: /data
+      #        name: dev-ceevee-data
         #strategy: 
         #  type: Recreate #recreate b/c the api is super heavy
         image: dependencytrack/apiserver
-        env:
-          - name: ALPINE_DATABASE_URL
-            value: jdbc:h2:/data/.dependency-track/db
-          - name: ALPINE_DATA_DIRECTORY
-            value: /data/.dependency-track
+        #env:
+        #  - name: ALPINE_DATABASE_URL
+        #    value: jdbc:h2:/data/.dependency-track/db
+        #  - name: ALPINE_DATA_DIRECTORY
+        #    value: /data/.dependency-track
         resources:
           requests:
             memory: "4.5Gi"
-            cpu: "1800m"
+            cpu: "2"
           limits:
             memory: "6Gi"
             cpu: "3"
         ports:
         - containerPort: 8080
         envFrom:
+          - configMapRef:
+              name: oidc-configuration
           - secretRef:
-              name: ceevee-secrets
-      volumes:
-        - name: dev-ceevee-data
-          persistentVolumeClaim:
-            claimName: ceevee-data
+              name: postgres-configuration
+      #volumes:
+      #  - name: dev-ceevee-data
+          #persistentVolumeClaim:
+          #  claimName: ceevee-data
+  strategy:
+    type: Recreate
 ---
 # Source: base/templates/track-deployment.yaml
 apiVersion: apps/v1
@@ -226,8 +266,8 @@ spec:
         ports:
         - containerPort: 8080
         envFrom:
-          - secretRef:
-              name: ceevee-secrets
+          - configMapRef:
+              name: oidc-configuration
 ---
 # Source: base/templates/api-deployment.yaml
 kind: Ingress
@@ -236,14 +276,14 @@ metadata:
   name: api-ingress
 spec:
   rules:
-    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: api-service
+                name: dev-api-service
                 port:
                   number: 80
 ---
@@ -254,14 +294,14 @@ metadata:
   name: pipeline-ingress
 spec:
   rules:
-    - host: event-listener-461a32.apps.silver.devops.gov.bc.ca
+    - host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: test
+                name: el-dev-event-listener
                 port:
                   number: 80
 ---
@@ -272,14 +312,14 @@ metadata:
   name: track-ingress
 spec:
   rules:
-    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: track-service
+                name: dev-track-service
                 port:
                   number: 80
 ---
@@ -298,7 +338,7 @@ spec:
         - kind: ClusterTriggerBinding
           ref: github-push
       template:
-        ref: trigger-template-ceevee-pipeline
+        ref: dev-trigger-template-fett-pipeline
 ---
 # Source: base/templates/pipeline.yaml
 apiVersion: tekton.dev/v1beta1
@@ -334,25 +374,84 @@ spec:
         name: git-clone
       workspaces:
         - name: output
-          workspace: ceevee-code-storage
-    - name: openshift-client
+          workspace: dev-fett-code-storage
+    - name: custom-helm
       runAfter:
         - git-clone
+      taskRef:
+        kind: Task
+        name: custom-helm
+      params:
+        - name: charts_dir
+          value: .
+        - name: release_version
+          value: v1.0.0
+        - name: release_name
+          value: fett-helm
+        - name: release_namespace
+          value: ''
+        - name: overwrite_values
+          value: ''
+        - name: values_file
+          value: overlays/dev/values.yaml
+        - name: helm_image
+          value: >-
+            docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+        - name: upgrade_extra_params
+          value: ''
+      workspaces:
+      - name: source
+        workspace: dev-fett-code-storage
+    - name: openshift-configuration-creation
+      runAfter:
+        - custom-helm
       params:
         - name: VERSION
           value: latest
-        #- name: SCRIPT
-        #  value: oc create -k dev
+        - name: SCRIPT
+          value: oc process -f base/config.yaml | oc apply -f - --overwrite=false | echo "config applied"
       taskRef:
         kind: ClusterTask
         name: openshift-client
       workspaces:
         - name: manifest-dir
-          workspace: ceevee-code-storage
+          workspace: dev-fett-code-storage
         - name: kubeconfig-dir
-          workspace: ceevee-code-storage
+          workspace: dev-fett-code-storage
+    - name: openshift-fett-deployment
+      runAfter:
+        - openshift-configuration-creation
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc apply -k overlays/dev
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: dev-fett-code-storage
+        - name: kubeconfig-dir
+          workspace: dev-fett-code-storage
+    - name: openshift-certbot-rollout
+      runAfter:
+        - openshift-fett-deployment
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/certbot.dc.yaml | oc apply -f -
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: dev-fett-code-storage
+        - name: kubeconfig-dir
+          workspace: dev-fett-code-storage
   workspaces:
-    - name: ceevee-code-storage
+    - name: dev-fett-code-storage
 ---
 # Source: base/templates/api-deployment.yaml
 kind: Route
@@ -365,11 +464,11 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   path: "/api/v1"
   to:
     kind: Service
-    name: api-service
+    name: dev-api-service
     weight: 100
   port:
     targetPort: 8080
@@ -377,12 +476,6 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
   wildcardPolicy: None
-#status:
-#  ingress:
-#    - host: api.nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-#      routerName: default
-#      wildcardPolicy: None
-#      routerCanonicalHostname: router-default.apps.silver.devops.gov.bc.caa
 ---
 # Source: base/templates/pipeline.yaml
 kind: Route
@@ -393,10 +486,10 @@ metadata:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
-  host: event-listener-461a32.apps.silver.devops.gov.bc.ca
+  host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: event-listener-461a32
+    name: el-dev-event-listener
     weight: 100
   port:
     targetPort: 8000
@@ -412,10 +505,10 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: track-service
+    name: dev-track-service
     weight: 100
   port:
     targetPort: 8080
@@ -425,10 +518,55 @@ spec:
   wildcardPolicy: None
 ---
 # Source: base/templates/pipeline.yaml
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm
+spec:
+  description: >-
+    Custom task to perform helm templating
+  params:
+    - name: charts_dir
+      description: The directory in source that contains the helm chart
+    - name: release_version
+      description: The helm release version in semantic versioning format
+      default: "v1.0.0"
+    - name: release_name
+      description: The helm release name
+      default: "helm-release"
+    - name: release_namespace
+      description: The helm release namespace
+      default: ""
+    - name: overwrite_values
+      description: "Specify the values you want to overwrite, comma separated: autoscaling.enabled=true,replicas=1"
+      default: ""
+    - name: values_file
+      description: "The values file to be used"
+      default: "values.yaml"
+    - name: helm_image
+      description: "helm image to be used"
+      default: "docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae" #tag: v3.6.0
+    - name: upgrade_extra_params
+      description: "Extra parameters passed for the helm upgrade command"
+      default: ""
+  workspaces:
+    - name: source
+  steps:
+    - name: template
+      image: $(params.helm_image)
+      workingDir: /workspace/source
+      script: |
+        echo current installed helm releases
+        helm list --namespace "$(params.release_namespace)"
+
+        echo templating helm chart...
+        helm template base -f "$(params.values_file)" > base/fett.yaml
+---
+# Source: base/templates/pipeline.yaml
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
-  name: trigger-template-ceevee-pipeline
+  name: trigger-template-fett-pipeline
 spec:
   params:
     - name: git-revision
@@ -441,16 +579,16 @@ spec:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
-        generateName: ceevee-pipeline-
+        generateName: dev-fett-pipeline-
         labels:
-          tekton.dev/pipeline: ceevee-pipeline
+          tekton.dev/pipeline: dev-fett-pipeline
       spec:
         params: []
         pipelineRef:
-          name: ceevee-pipeline
+          name: dev-fett-pipeline
         resources: []
         status: null
         workspaces:
-          - name: ceevee-code-storage
+          - name: dev-fett-code-storage
             persistentVolumeClaim:
-              claimName: ceevee-code-storage
+              claimName: dev-fett-code-storage
