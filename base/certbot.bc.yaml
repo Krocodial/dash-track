@@ -1,4 +1,3 @@
----
 apiVersion: template.openshift.io/v1
 kind: Template
 labels:
@@ -47,7 +46,6 @@ objects:
         - type: ConfigChange
         - type: ImageChange
           imageChange: {}
-
 parameters:
   - name: GIT_REF
     description: Git Pull Request or Branch Reference (i.e. 'pull/CHANGE_ID/head')
@@ -59,3 +57,4 @@ parameters:
     displayName: Source Repository URL
     required: true
     value: https://github.com/BCDevOps/certbot.git
+---

@@ -118,14 +118,46 @@ spec:
       workspaces:
       - name: source
         workspace: {{.Values.ENVDASH}}ceevee-code-storage
-    - name: openshift-client
+    - name: openshift-configuration-creation
       runAfter:
         - custom-helm
       params:
         - name: VERSION
           value: latest
         - name: SCRIPT
-          value: oc create -f base/config.yaml | oc apply -k overlays/{{.Values.ENVIRONMENT}}
+          value: oc process -f base/config.yaml | oc create -f -
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
+        - name: kubeconfig-dir
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
+    - name: openshift-fett-deployment
+      runAfter:
+        - openshift-configuration-creation
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc apply -k overlays/{{.Values.ENVIRONMENT}}
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
+        - name: kubeconfig-dir
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
+    - name: openshift-certbot-rollout
+      runAfter:
+        - openshift-fett-deployment
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/certbot.bc.yaml | oc create -f - | oc process -f base/certbot.dc.yaml | oc create -f -
       taskRef:
         kind: ClusterTask
         name: openshift-client
