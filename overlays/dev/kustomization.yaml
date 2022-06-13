@@ -9,14 +9,14 @@ namePrefix: dev-
 #    envs:
 #    - .secrets    
 patches:
-  - patch: |-
-      - op: add
-        path: /spec/tasks/2/params/-
-        value: 
-            name: SCRIPT
-            value: oc apply -k overlays/dev
-    target:
-      kind: Pipeline
+  #- patch: |-
+  #    - op: add
+  #      path: /spec/tasks/2/params/-
+  #      value: 
+  #          name: SCRIPT
+  #          value: oc apply -k overlays/dev
+  #  target:
+  #    kind: Pipeline
   - patch: |-
       - op: add
         path: /spec/tasks/0/params/-

@@ -3,5 +3,5 @@ resources:
     #- pipeline.yaml
     #- api-deployment.yaml
     #- track-deployment.yaml
-    #- certbot.bc.yaml
-    #- certbot.dc.yaml
+    - certbot.bc.yaml
+    - certbot.dc.yaml

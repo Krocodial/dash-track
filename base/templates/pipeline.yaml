@@ -117,25 +117,25 @@ spec:
           value: ''
       workspaces:
       - name: source
-        workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+        workspace: {{.Values.ENVDASH}}ceevee-code-storage
     - name: openshift-client
       runAfter:
         - custom-helm
       params:
         - name: VERSION
           value: latest
-        #- name: SCRIPT
-        #  value: oc create -k {{.Values.ENVIRONMENT}}
+        - name: SCRIPT
+          value: oc apply -k overlays/{{.Values.ENVIRONMENT}}
       taskRef:
         kind: ClusterTask
         name: openshift-client
       workspaces:
         - name: manifest-dir
-          workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
         - name: kubeconfig-dir
-          workspace: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+          workspace: {{.Values.ENVDASH}}ceevee-code-storage
   workspaces:
-    - name: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+    - name: {{.Values.ENVDASH}}ceevee-code-storage
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
@@ -153,19 +153,19 @@ spec:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
-        generateName: {{.Values.ENVIRONMENT}}-ceevee-pipeline-
+        generateName: {{.Values.ENVDASH}}ceevee-pipeline-
         labels:
-          tekton.dev/pipeline: {{.Values.ENVIRONMENT}}-ceevee-pipeline
+          tekton.dev/pipeline: {{.Values.ENVDASH}}ceevee-pipeline
       spec:
         params: []
         pipelineRef:
-          name: {{.Values.ENVIRONMENT}}-ceevee-pipeline
+          name: {{.Values.ENVDASH}}ceevee-pipeline
         resources: []
         status: null
         workspaces:
-          - name: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+          - name: {{.Values.ENVDASH}}ceevee-code-storage
             persistentVolumeClaim:
-              claimName: {{.Values.ENVIRONMENT}}-ceevee-code-storage
+              claimName: {{.Values.ENVDASH}}ceevee-code-storage
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
@@ -181,7 +181,7 @@ spec:
         - kind: ClusterTriggerBinding
           ref: github-push
       template:
-        ref: {{.Values.ENVIRONMENT}}-trigger-template-ceevee-pipeline
+        ref: {{.Values.ENVDASH}}trigger-template-ceevee-pipeline
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -195,7 +195,7 @@ spec:
           network.openshift.io/policy-group: ingress
   podSelector: 
     matchLabels:
-      eventlistener: {{.Values.ENVIRONMENT}}-event-listener
+      eventlistener: {{.Values.ENVDASH}}event-listener
   policyTypes:
   - Ingress
 ---
@@ -205,14 +205,14 @@ metadata:
   name: pipeline-ingress
 spec:
   rules:
-    - host: {{.Values.ENVIRONMENT}}-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+    - host: {{.Values.ENVDASH}}ceevee-pipeline.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: el-{{.Values.ENVIRONMENT}}-event-listener
+                name: el-{{.Values.ENVDASH}}event-listener
                 port:
                   number: 80
 ---
@@ -224,10 +224,10 @@ metadata:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
-  host: {{.Values.ENVIRONMENT}}-ceevee-pipeline.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}ceevee-pipeline.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: el-{{.Values.ENVIRONMENT}}-event-listener
+    name: el-{{.Values.ENVDASH}}event-listener
     weight: 100
   port:
     targetPort: 8000
