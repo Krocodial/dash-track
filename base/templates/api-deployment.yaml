@@ -89,6 +89,9 @@ spec:
             cpu: "3"
         ports:
         - containerPort: 8080
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:postgresql://postgres:5432/db0
         envFrom:
           - configMapRef:
               name: oidc-configuration
