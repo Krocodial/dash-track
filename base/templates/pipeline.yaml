@@ -158,32 +158,32 @@ spec:
       workspaces:
         - name: output
           workspace: {{.Values.ENVIRONMENT}}-fett-code-storage
-    - name: custom-helm-upgrade-from-repo
-      params:
-        - name: helm_repo
-          value: 'https://charts.bitnami.com/bitnami'
-        - name: chart_name
-          value: bitnami/postgresql
-        - name: release_version
-          value: 14.3.0
-        - name: release_name
-          value: postgresql
-        - name: overwrite_values
-          value: base/PSValues.yaml
-        - name: helm_image
-          value: >-
-            docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
-      runAfter:
-        - git-clone
-      workspaces:
-      - name: source
-        workspace: {{.Values.ENVDASH}}fett-code-storage
-      taskRef:
-        kind: Task
-        name: dev-custom-helm-upgrade-from-repo
+    #- name: custom-helm-upgrade-from-repo
+    #  params:
+    #    - name: helm_repo
+    #      value: 'https://charts.bitnami.com/bitnami'
+    #    - name: chart_name
+    #      value: bitnami/postgresql
+    #    - name: release_version
+    #      value: 14.3.0
+    #    - name: release_name
+    #      value: postgresql
+    #    - name: overwrite_values
+    #      value: base/PSValues.yaml
+    #    - name: helm_image
+    #      value: >-
+    #        docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+    #  runAfter:
+    #    - git-clone
+    #  workspaces:
+    #  - name: source
+    #    workspace: {{.Values.ENVDASH}}fett-code-storage
+    #  taskRef:
+    #    kind: Task
+    #    name: dev-custom-helm-upgrade-from-repo
     - name: custom-helm-template
       runAfter:
-        - custom-helm-upgrade-from-repo
+        - git-clone
       taskRef:
         kind: Task
         name: dev-custom-helm-template

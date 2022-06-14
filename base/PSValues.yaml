@@ -1,10 +1,13 @@
 volumePermissions:
   enabled: false
   securityContext:
-    runAsUser: "auto"
+    runAsUser: "1004160000"
 
 securityContext:
   enabled: false
+
+podSecurityContext:
+enabled: false
 
 shmVolume:
   chmod:
