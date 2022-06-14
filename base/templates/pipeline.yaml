@@ -157,7 +157,7 @@ spec:
         name: git-clone
       workspaces:
         - name: output
-          workspace: {{.Values.ENVIRONMENT}}-fett-code-storage
+          workspace: {{.Values.ENVDASH}}fett-code-storage
     #- name: custom-helm-upgrade-from-repo
     #  params:
     #    - name: helm_repo
