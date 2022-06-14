@@ -40,11 +40,11 @@ spec:
               name: postgres-configuration
           env:
           - name: PGDATA
-            value: /opt/pgdata
+            value: /var/lib/postgresql/data/pgdata
           - name: POSTGRES_DB
             value: db0
           volumeMounts:
-          - mountPath: "/opt/pgdata"
+          - mountPath: "/var/lib/postgresql/data"
             name: {{.Values.ENVDASH}}fett-data
       volumes:
         - name: {{.Values.ENVDASH}}fett-data
