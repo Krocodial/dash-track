@@ -180,13 +180,13 @@ spec:
         workspace: {{.Values.ENVDASH}}fett-code-storage
       taskRef:
         kind: Task
-        name: custom-helm-upgrade-from-repo
+        name: dev-custom-helm-upgrade-from-repo
     - name: custom-helm-template
       runAfter:
         - custom-helm-upgrade-from-repo
       taskRef:
         kind: Task
-        name: custom-helm-template
+        name: dev-custom-helm-template
       params:
         - name: charts_dir
           value: .
