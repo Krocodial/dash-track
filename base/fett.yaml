@@ -130,6 +130,19 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
   name: api-service
 spec:
   #type: NodePort
@@ -173,6 +186,10 @@ spec:
       labels:
         app: postgres
     spec:
+      securityContext:
+        runAsUser: 1004160000
+        runAsGroup: 1004160000
+        fsGroup: 1004160000
       containers:
         - name: postgres
           image: postgres
@@ -182,15 +199,17 @@ spec:
           - secretRef:
               name: postgres-configuration
           env:
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
           - name: POSTGRES_DB
             value: db0
           volumeMounts:
-          - mountPath: "/var/lib/postgresql/data:z"
+          - mountPath: "/var/lib/postgresql/data"
             name: dev-fett-data
       volumes:
         - name: dev-fett-data
           persistentVolumeClaim:
-            claimName: fett-data
+            claimName: dev-fett-data
 ---
 # Source: base/templates/api-deployment.yaml
 apiVersion: apps/v1
@@ -231,6 +250,9 @@ spec:
             cpu: "3"
         ports:
         - containerPort: 8080
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:postgresql://dev-postgres-service:5432/db0
         envFrom:
           - configMapRef:
               name: oidc-configuration
@@ -344,7 +366,7 @@ spec:
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: ceevee-pipeline
+  name: fett-pipeline
 spec:
   #finally: 
   tasks:
@@ -375,12 +397,35 @@ spec:
       workspaces:
         - name: output
           workspace: dev-fett-code-storage
-    - name: custom-helm
+    #- name: custom-helm-upgrade-from-repo
+    #  params:
+    #    - name: helm_repo
+    #      value: 'https://charts.bitnami.com/bitnami'
+    #    - name: chart_name
+    #      value: bitnami/postgresql
+    #    - name: release_version
+    #      value: 14.3.0
+    #    - name: release_name
+    #      value: postgresql
+    #    - name: overwrite_values
+    #      value: base/PSValues.yaml
+    #    - name: helm_image
+    #      value: >-
+    #        docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+    #  runAfter:
+    #    - git-clone
+    #  workspaces:
+    #  - name: source
+    #    workspace: dev-fett-code-storage
+    #  taskRef:
+    #    kind: Task
+    #    name: dev-custom-helm-upgrade-from-repo
+    - name: custom-helm-template
       runAfter:
         - git-clone
       taskRef:
         kind: Task
-        name: custom-helm
+        name: dev-custom-helm-template
       params:
         - name: charts_dir
           value: .
@@ -404,7 +449,7 @@ spec:
         workspace: dev-fett-code-storage
     - name: openshift-configuration-creation
       runAfter:
-        - custom-helm
+        - custom-helm-template
       params:
         - name: VERSION
           value: latest
@@ -521,7 +566,7 @@ spec:
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: custom-helm
+  name: custom-helm-template
 spec:
   description: >-
     Custom task to perform helm templating
@@ -561,6 +606,74 @@ spec:
 
         echo templating helm chart...
         helm template base -f "$(params.values_file)" > base/fett.yaml
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm-upgrade-from-repo
+spec:
+  description: >-
+    These tasks will install / upgrade a helm chart into your Kubernetes /
+    OpenShift Cluster using Helm
+  params:
+    - description: Specify a specific helm repo
+      name: helm_repo
+      type: string
+    - description: Specify chart name that will be deployed
+      name: chart_name
+      type: string
+    - default: v1.0.0
+      description: The helm release version in semantic versioning format
+      name: release_version
+      type: string
+    - default: helm-release
+      description: The helm release name
+      name: release_name
+      type: string
+    - default: ''
+      description: The helm release namespace
+      name: release_namespace
+      type: string
+    - default: ''
+      description: >-
+        Specify the values file
+      name: overwrite_values
+      type: string
+    - default: >-
+        docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+      description: Specify a specific helm image
+      name: helm_image
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - image: $(params.helm_image)
+      name: upgrade-from-repo
+      resources: {}
+      workingDir: /workspace/source
+      script: >
+        echo current installed helm releases
+
+        helm list --namespace "$(params.release_namespace)"
+
+        echo parsing helms repo name...
+
+        REPO=`echo "$(params.chart_name)" | cut -d "/" -f 1`
+
+        echo adding helm repo...
+
+        helm repo add $REPO "$(params.helm_repo)"
+
+        echo adding updating repo...
+
+        helm repo update
+
+        echo installing helm chart...
+
+        helm upgrade --wait --install --namespace "$(params.release_namespace)"
+        $(params.release_name) $(params.chart_name) --debug -f
+        "$(params.overwrite_values)"
 ---
 # Source: base/templates/pipeline.yaml
 apiVersion: triggers.tekton.dev/v1alpha1

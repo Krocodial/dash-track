@@ -199,20 +199,3 @@ spec:
           network.openshift.io/policy-group: ingress
   policyTypes:
   - Ingress
----
-kind: Secret
-apiVersion: v1
-metadata:
-  name: fett-secrets
-data:
-  ALPINE_OIDC_TEAM_SYNCHRONIZATION: Y2hhbmdlbWU= 
-  DOMAIN: Y2hhbmdlbWU=
-  API_BASE_URL: Y2hhbmdlbWU=
-  OIDC_CLIENT_ID: Y2hhbmdlbWU=
-  ALPINE_OIDC_CLIENT_ID: Y2hhbmdlbWU=
-  ALPINE_OIDC_TEAMS_CLAIM: Y2hhbmdlbWU=
-  ALPINE_OIDC_USERNAME_CLAIM: Y2hhbmdlbWU=
-  ALPINE_OIDC_ISSUER: Y2hhbmdlbWU=
-  ALPINE_OIDC_USER_PROVISIONING: Y2hhbmdlbWU=
-  OIDC_ISSUER: Y2hhbmdlbWU=
-  ALPINE_OIDC_ENABLED: Y2hhbmdlbWU=
