@@ -37,13 +37,13 @@ spec:
           env:
           - name: POSTGRES_DB
             value: db0
-          volumeMounts:
-          - mountPath: "/var/lib/postgresql/data:z"
-            name: {{.Values.ENVDASH}}fett-data
-      volumes:
-        - name: {{.Values.ENVDASH}}fett-data
-          persistentVolumeClaim:
-            claimName: fett-data
+          #volumeMounts:
+          #- mountPath: "/var/lib/postgresql/data:z"
+          #  name: {{.Values.ENVDASH}}fett-data
+      #volumes:
+      #  - name: {{.Values.ENVDASH}}fett-data
+      #    persistentVolumeClaim:
+      #      claimName: fett-data
 ---
 apiVersion: apps/v1
 kind: Deployment
