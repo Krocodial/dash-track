@@ -32,7 +32,7 @@ spec:
         fsGroup: 1004160000
       containers:
         - name: postgres
-          image: postgresql
+          image: postgres
           ports:
           - containerPort: 5432
           envFrom:
