@@ -20,8 +20,8 @@ spec:
         ports:
         - containerPort: 8080
         envFrom:
-          - secretRef:
-              name: ceevee-secrets
+          - configMapRef:
+              name: oidc-configuration
 ---
 apiVersion: v1
 kind: Service
@@ -43,14 +43,14 @@ metadata:
   name: track-ingress
 spec:
   rules:
-    - host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: track-service
+                name: {{.Values.ENVDASH}}track-service
                 port:
                   number: 80
 ---
@@ -63,10 +63,10 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: track-service
+    name: {{.Values.ENVDASH}}track-service
     weight: 100
   port:
     targetPort: 8080

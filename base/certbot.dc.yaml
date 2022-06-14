@@ -1,0 +1,143 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: certbot
+  template: certbot-template
+metadata:
+  name: certbot-dc
+
+objects:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: certbot
+    spec:
+      storageClassName: netapp-file-standard
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 64Mi
+
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: certbot
+    spec:
+      concurrencyPolicy: Forbid
+      failedJobsHistoryLimit: 3
+      successfulJobsHistoryLimit: 3
+      startingDeadlineSeconds: 60
+      jobTemplate:
+        metadata:
+        spec:
+          backoffLimit: 6
+          activeDeadlineSeconds: 300
+          parallelism: 1
+          completions: 1
+          template:
+            metadata:
+              labels:
+                app: certbot
+                template: certbot-template
+            spec:
+              containers:
+                - name: certbot
+                  image: "${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
+                  imagePullPolicy: Always
+                  env:
+                    - name: CERTBOT_DEBUG
+                      value: "${CERTBOT_DEBUG}"
+                    - name: CERTBOT_DELETE_ACME_ROUTES
+                      value: "${CERTBOT_DELETE_ACME_ROUTES}"
+                    - name: CERTBOT_DRY_RUN
+                      value: "${CERTBOT_DRYRUN}"
+                    - name: CERTBOT_EMAIL
+                      value: "${CERTBOT_EMAIL}"
+                    - name: CERTBOT_SERVER
+                      value: "${CERTBOT_SERVER}"
+                    - name: CERTBOT_STAGING
+                      value: "${CERTBOT_STAGING}"
+                    - name: CERTBOT_SUBSET
+                      value: "${CERTBOT_SUBSET}"
+                  resources:
+                    requests:
+                      cpu: 50m
+                    limits:
+                      cpu: 250m
+                  volumeMounts:
+                    - mountPath: /etc/letsencrypt
+                      name: certbot-config
+              restartPolicy: Never
+              serviceAccountName: certbot
+              volumes:
+                - name: certbot-config
+                  persistentVolumeClaim:
+                    claimName: certbot
+      schedule: "${CRON_SCHEDULE}"
+
+parameters:
+  - name: CERTBOT_DEBUG
+    description: Run Certbot in debug mode
+    required: true
+    value: "false"
+
+  - name: CERTBOT_DELETE_ACME_ROUTES
+    description: Self cleanup temporary ACME routes when done
+    required: true
+    value: "true"
+
+  - name: CERTBOT_DRYRUN
+    description: Run without executing
+    required: true
+    value: "false"
+
+  - name: CERTBOT_EMAIL
+    description: Email where CSR requests are sent to. For Entrust, Product Owner's `*@gov.bc.ca` is suggested
+    required: true
+    value: "Louis.kraak@gov.bc.ca"
+
+  - name: CERTBOT_STAGING
+    description: Use self-signed cert renewals. Must be false if using Entrust
+    required: true
+    value: "false"
+    # Let's Encrypt Stage environment will help with non-prod cert renewals, so you don't hit limits
+
+  - name: CERTBOT_SERVER
+    required: true
+    value: https://acme-v02.api.letsencrypt.org/directory
+    # Staging Server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Entrust Server: https://www.entrust.net/acme/api/v1/directory/xx-xxxx-xxxx
+
+  - name: CERTBOT_SUBSET
+    description: Allow domain validation to pass if a subset of them are valid
+    required: true
+    value: "true"
+
+  - name: CRON_SCHEDULE
+    description: Cronjob Schedule
+    required: true
+    value: 15 12 * * 1,4
+    # Every Monday & Thursday - https://crontab.guru/#0_0_*_*_1,4
+
+  - name: IMAGE_REGISTRY
+    description: Image Registry
+    required: true
+    value: docker.io
+    # Internal OpenShift container registry: image-registry.openshift-image-registry.svc:5000
+
+  - name: IMAGE_NAMESPACE
+    description: Image Namespace
+    required: true
+    value: bcgovimages
+
+  - name: IMAGE_NAME
+    description: Image Name
+    required: true
+    value: certbot
+
+  - name: IMAGE_TAG
+    description: Image Tag. We recommend pinning this to a specific release veresion for stability
+    required: true
+    value: latest

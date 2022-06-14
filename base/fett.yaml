@@ -1,0 +1,594 @@
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencyapi
+  policyTypes:
+  - Ingress
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencyapi
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-openshift-ingress
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  podSelector: 
+    matchLabels:
+      eventlistener: dev-event-listener
+  policyTypes:
+  - Ingress
+---
+# Source: base/templates/track-deployment.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencytrack
+  policyTypes:
+  - Ingress
+---
+# Source: base/templates/track-deployment.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: track-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencytrack
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress
+---
+# Source: base/templates/api-deployment.yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: fett-secrets
+data:
+  ALPINE_OIDC_TEAM_SYNCHRONIZATION: Y2hhbmdlbWU= 
+  DOMAIN: Y2hhbmdlbWU=
+  API_BASE_URL: Y2hhbmdlbWU=
+  OIDC_CLIENT_ID: Y2hhbmdlbWU=
+  ALPINE_OIDC_CLIENT_ID: Y2hhbmdlbWU=
+  ALPINE_OIDC_TEAMS_CLAIM: Y2hhbmdlbWU=
+  ALPINE_OIDC_USERNAME_CLAIM: Y2hhbmdlbWU=
+  ALPINE_OIDC_ISSUER: Y2hhbmdlbWU=
+  ALPINE_OIDC_USER_PROVISIONING: Y2hhbmdlbWU=
+  OIDC_ISSUER: Y2hhbmdlbWU=
+  ALPINE_OIDC_ENABLED: Y2hhbmdlbWU=
+---
+# Source: base/templates/api-deployment.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: fett-data
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 10Gi
+---
+# Source: base/templates/pipeline.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: fett-code-storage
+    labels:
+        app: fett-code-storage
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 20Mi
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencyapi
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30001
+---
+# Source: base/templates/track-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: track-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencytrack
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30000
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres
+          ports:
+          - containerPort: 5432
+          envFrom:
+          - secretRef:
+              name: postgres-configuration
+          env:
+          - name: POSTGRES_DB
+            value: db0
+          volumeMounts:
+          - mountPath: "/var/lib/postgresql/data:z"
+            name: dev-fett-data
+      volumes:
+        - name: dev-fett-data
+          persistentVolumeClaim:
+            claimName: fett-data
+---
+# Source: base/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-api-deployment
+  labels:
+    app: dependencyapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencyapi
+  template:
+    metadata:
+      labels:
+        app: dependencyapi
+    spec:
+      containers:
+      - name: dependencyapi #requires 2 cores
+      #  volumeMounts:
+      #      - mountPath: /data
+      #        name: dev-ceevee-data
+        #strategy: 
+        #  type: Recreate #recreate b/c the api is super heavy
+        image: dependencytrack/apiserver
+        #env:
+        #  - name: ALPINE_DATABASE_URL
+        #    value: jdbc:h2:/data/.dependency-track/db
+        #  - name: ALPINE_DATA_DIRECTORY
+        #    value: /data/.dependency-track
+        resources:
+          requests:
+            memory: "4.5Gi"
+            cpu: "2"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - configMapRef:
+              name: oidc-configuration
+          - secretRef:
+              name: postgres-configuration
+      #volumes:
+      #  - name: dev-ceevee-data
+          #persistentVolumeClaim:
+          #  claimName: ceevee-data
+  strategy:
+    type: Recreate
+---
+# Source: base/templates/track-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-track-deployment
+  labels:
+    app: dependencytrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencytrack
+  template:
+    metadata:
+      labels:
+        app: dependencytrack
+    spec:
+      containers:
+      - name: dependencytrack #port in use
+        image: dependencytrack/frontend
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - configMapRef:
+              name: oidc-configuration
+---
+# Source: base/templates/api-deployment.yaml
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-api-service
+                port:
+                  number: 80
+---
+# Source: base/templates/pipeline.yaml
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: pipeline-ingress
+spec:
+  rules:
+    - host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: el-dev-event-listener
+                port:
+                  number: 80
+---
+# Source: base/templates/track-deployment.yaml
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: track-ingress
+spec:
+  rules:
+    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-track-service
+                port:
+                  number: 80
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  generation: 1
+  name: event-listener
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: ClusterTriggerBinding
+          ref: github-push
+      template:
+        ref: dev-trigger-template-fett-pipeline
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ceevee-pipeline
+spec:
+  #finally: 
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/Krocodial/dash-track.git'
+        #- name: revision
+        #  value: pipe
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: dev-fett-code-storage
+    - name: custom-helm
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: custom-helm
+      params:
+        - name: charts_dir
+          value: .
+        - name: release_version
+          value: v1.0.0
+        - name: release_name
+          value: fett-helm
+        - name: release_namespace
+          value: ''
+        - name: overwrite_values
+          value: ''
+        - name: values_file
+          value: overlays/dev/values.yaml
+        - name: helm_image
+          value: >-
+            docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+        - name: upgrade_extra_params
+          value: ''
+      workspaces:
+      - name: source
+        workspace: dev-fett-code-storage
+    - name: openshift-configuration-creation
+      runAfter:
+        - custom-helm
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/config.yaml | oc apply -f - --overwrite=false | echo "config applied"
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: dev-fett-code-storage
+        - name: kubeconfig-dir
+          workspace: dev-fett-code-storage
+    - name: openshift-fett-deployment
+      runAfter:
+        - openshift-configuration-creation
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc apply -k overlays/dev
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: dev-fett-code-storage
+        - name: kubeconfig-dir
+          workspace: dev-fett-code-storage
+    - name: openshift-certbot-rollout
+      runAfter:
+        - openshift-fett-deployment
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/certbot.dc.yaml | oc apply -f -
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: dev-fett-code-storage
+        - name: kubeconfig-dir
+          workspace: dev-fett-code-storage
+  workspaces:
+    - name: dev-fett-code-storage
+---
+# Source: base/templates/api-deployment.yaml
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/rewrite-target: /
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  path: "/api/v1"
+  to:
+    kind: Service
+    name: dev-api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+# Source: base/templates/pipeline.yaml
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: event-listener
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+spec:
+  host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: el-dev-event-listener
+    weight: 100
+  port:
+    targetPort: 8000
+  wildcardPolicy: None
+---
+# Source: base/templates/track-deployment.yaml
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: track-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: dev-track-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm
+spec:
+  description: >-
+    Custom task to perform helm templating
+  params:
+    - name: charts_dir
+      description: The directory in source that contains the helm chart
+    - name: release_version
+      description: The helm release version in semantic versioning format
+      default: "v1.0.0"
+    - name: release_name
+      description: The helm release name
+      default: "helm-release"
+    - name: release_namespace
+      description: The helm release namespace
+      default: ""
+    - name: overwrite_values
+      description: "Specify the values you want to overwrite, comma separated: autoscaling.enabled=true,replicas=1"
+      default: ""
+    - name: values_file
+      description: "The values file to be used"
+      default: "values.yaml"
+    - name: helm_image
+      description: "helm image to be used"
+      default: "docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae" #tag: v3.6.0
+    - name: upgrade_extra_params
+      description: "Extra parameters passed for the helm upgrade command"
+      default: ""
+  workspaces:
+    - name: source
+  steps:
+    - name: template
+      image: $(params.helm_image)
+      workingDir: /workspace/source
+      script: |
+        echo current installed helm releases
+        helm list --namespace "$(params.release_namespace)"
+
+        echo templating helm chart...
+        helm template base -f "$(params.values_file)" > base/fett.yaml
+---
+# Source: base/templates/pipeline.yaml
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template-fett-pipeline
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: content-type
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: dev-fett-pipeline-
+        labels:
+          tekton.dev/pipeline: dev-fett-pipeline
+      spec:
+        params: []
+        pipelineRef:
+          name: dev-fett-pipeline
+        resources: []
+        status: null
+        workspaces:
+          - name: dev-fett-code-storage
+            persistentVolumeClaim:
+              claimName: dev-fett-code-storage

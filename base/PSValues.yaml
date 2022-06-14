@@ -1,0 +1,17 @@
+volumePermissions:
+  enabled: false
+  securityContext:
+    runAsUser: "1004160000"
+
+securityContext:
+  enabled: false
+
+podSecurityContext:
+enabled: false
+
+shmVolume:
+  chmod:
+    enabled: false
+
+containerSecurityContext:
+  enabled: false

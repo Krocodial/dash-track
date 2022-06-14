@@ -1,0 +1,356 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: fett-code-storage
+    labels:
+        app: fett-code-storage
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 20Mi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm-template
+spec:
+  description: >-
+    Custom task to perform helm templating
+  params:
+    - name: charts_dir
+      description: The directory in source that contains the helm chart
+    - name: release_version
+      description: The helm release version in semantic versioning format
+      default: "v1.0.0"
+    - name: release_name
+      description: The helm release name
+      default: "helm-release"
+    - name: release_namespace
+      description: The helm release namespace
+      default: ""
+    - name: overwrite_values
+      description: "Specify the values you want to overwrite, comma separated: autoscaling.enabled=true,replicas=1"
+      default: ""
+    - name: values_file
+      description: "The values file to be used"
+      default: "values.yaml"
+    - name: helm_image
+      description: "helm image to be used"
+      default: "docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae" #tag: v3.6.0
+    - name: upgrade_extra_params
+      description: "Extra parameters passed for the helm upgrade command"
+      default: ""
+  workspaces:
+    - name: source
+  steps:
+    - name: template
+      image: $(params.helm_image)
+      workingDir: /workspace/source
+      script: |
+        echo current installed helm releases
+        helm list --namespace "$(params.release_namespace)"
+
+        echo templating helm chart...
+        helm template base -f "$(params.values_file)" > base/fett.yaml
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-helm-upgrade-from-repo
+spec:
+  description: >-
+    These tasks will install / upgrade a helm chart into your Kubernetes /
+    OpenShift Cluster using Helm
+  params:
+    - description: Specify a specific helm repo
+      name: helm_repo
+      type: string
+    - description: Specify chart name that will be deployed
+      name: chart_name
+      type: string
+    - default: v1.0.0
+      description: The helm release version in semantic versioning format
+      name: release_version
+      type: string
+    - default: helm-release
+      description: The helm release name
+      name: release_name
+      type: string
+    - default: ''
+      description: The helm release namespace
+      name: release_namespace
+      type: string
+    - default: ''
+      description: >-
+        Specify the values file
+      name: overwrite_values
+      type: string
+    - default: >-
+        docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+      description: Specify a specific helm image
+      name: helm_image
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - image: $(params.helm_image)
+      name: upgrade-from-repo
+      resources: {}
+      workingDir: /workspace/source
+      script: >
+        echo current installed helm releases
+
+        helm list --namespace "$(params.release_namespace)"
+
+        echo parsing helms repo name...
+
+        REPO=`echo "$(params.chart_name)" | cut -d "/" -f 1`
+
+        echo adding helm repo...
+
+        helm repo add $REPO "$(params.helm_repo)"
+
+        echo adding updating repo...
+
+        helm repo update
+
+        echo installing helm chart...
+
+        helm upgrade --wait --install --namespace "$(params.release_namespace)"
+        $(params.release_name) $(params.chart_name) --debug -f
+        "$(params.overwrite_values)"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: fett-pipeline
+spec:
+  #finally: 
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/Krocodial/dash-track.git'
+        #- name: revision
+        #  value: pipe
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: {{.Values.ENVIRONMENT}}-fett-code-storage
+    #- name: custom-helm-upgrade-from-repo
+    #  params:
+    #    - name: helm_repo
+    #      value: 'https://charts.bitnami.com/bitnami'
+    #    - name: chart_name
+    #      value: bitnami/postgresql
+    #    - name: release_version
+    #      value: 14.3.0
+    #    - name: release_name
+    #      value: postgresql
+    #    - name: overwrite_values
+    #      value: base/PSValues.yaml
+    #    - name: helm_image
+    #      value: >-
+    #        docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+    #  runAfter:
+    #    - git-clone
+    #  workspaces:
+    #  - name: source
+    #    workspace: {{.Values.ENVDASH}}fett-code-storage
+    #  taskRef:
+    #    kind: Task
+    #    name: dev-custom-helm-upgrade-from-repo
+    - name: custom-helm-template
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: dev-custom-helm-template
+      params:
+        - name: charts_dir
+          value: .
+        - name: release_version
+          value: v1.0.0
+        - name: release_name
+          value: fett-helm
+        - name: release_namespace
+          value: ''
+        - name: overwrite_values
+          value: ''
+        - name: values_file
+          value: overlays/{{.Values.ENVIRONMENT}}/values.yaml
+        - name: helm_image
+          value: >-
+            docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+        - name: upgrade_extra_params
+          value: ''
+      workspaces:
+      - name: source
+        workspace: {{.Values.ENVDASH}}fett-code-storage
+    - name: openshift-configuration-creation
+      runAfter:
+        - custom-helm-template
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/config.yaml | oc apply -f - --overwrite=false | echo "config applied"
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+        - name: kubeconfig-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+    - name: openshift-fett-deployment
+      runAfter:
+        - openshift-configuration-creation
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc apply -k overlays/{{.Values.ENVIRONMENT}}
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+        - name: kubeconfig-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+    - name: openshift-certbot-rollout
+      runAfter:
+        - openshift-fett-deployment
+      params:
+        - name: VERSION
+          value: latest
+        - name: SCRIPT
+          value: oc process -f base/certbot.dc.yaml | oc apply -f -
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+        - name: kubeconfig-dir
+          workspace: {{.Values.ENVDASH}}fett-code-storage
+  workspaces:
+    - name: {{.Values.ENVDASH}}fett-code-storage
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template-fett-pipeline
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: content-type
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: {{.Values.ENVDASH}}fett-pipeline-
+        labels:
+          tekton.dev/pipeline: {{.Values.ENVDASH}}fett-pipeline
+      spec:
+        params: []
+        pipelineRef:
+          name: {{.Values.ENVDASH}}fett-pipeline
+        resources: []
+        status: null
+        workspaces:
+          - name: {{.Values.ENVDASH}}fett-code-storage
+            persistentVolumeClaim:
+              claimName: {{.Values.ENVDASH}}fett-code-storage
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  generation: 1
+  name: event-listener
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: ClusterTriggerBinding
+          ref: github-push
+      template:
+        ref: {{.Values.ENVDASH}}trigger-template-fett-pipeline
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-openshift-ingress
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  podSelector: 
+    matchLabels:
+      eventlistener: {{.Values.ENVDASH}}event-listener
+  policyTypes:
+  - Ingress
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: pipeline-ingress
+spec:
+  rules:
+    - host: {{.Values.ENVDASH}}fett-pipeline.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: el-{{.Values.ENVDASH}}event-listener
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: event-listener
+  labels:
+    app.kubernetes.io/managed-by: EventListener
+    app.kubernetes.io/part-of: Triggers
+spec:
+  host: {{.Values.ENVDASH}}fett-pipeline.apps.silver.devops.gov.bc.ca
+  to:
+    kind: Service
+    name: el-{{.Values.ENVDASH}}event-listener
+    weight: 100
+  port:
+    targetPort: 8000
+  wildcardPolicy: None

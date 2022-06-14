@@ -1,0 +1,218 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: fett-data
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        runAsUser: 1004160000
+        runAsGroup: 1004160000
+        fsGroup: 1004160000
+      containers:
+        - name: postgres
+          image: postgres
+          ports:
+          - containerPort: 5432
+          envFrom:
+          - secretRef:
+              name: postgres-configuration
+          env:
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+          - name: POSTGRES_DB
+            value: db0
+          volumeMounts:
+          - mountPath: "/var/lib/postgresql/data"
+            name: {{.Values.ENVDASH}}fett-data
+      volumes:
+        - name: {{.Values.ENVDASH}}fett-data
+          persistentVolumeClaim:
+            claimName: {{.Values.ENVDASH}}fett-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependency-api-deployment
+  labels:
+    app: dependencyapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependencyapi
+  template:
+    metadata:
+      labels:
+        app: dependencyapi
+    spec:
+      containers:
+      - name: dependencyapi #requires 2 cores
+      #  volumeMounts:
+      #      - mountPath: /data
+      #        name: dev-ceevee-data
+        #strategy: 
+        #  type: Recreate #recreate b/c the api is super heavy
+        image: dependencytrack/apiserver
+        #env:
+        #  - name: ALPINE_DATABASE_URL
+        #    value: jdbc:h2:/data/.dependency-track/db
+        #  - name: ALPINE_DATA_DIRECTORY
+        #    value: /data/.dependency-track
+        resources:
+          requests:
+            memory: "4.5Gi"
+            cpu: "2"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        ports:
+        - containerPort: 8080
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:postgresql://{{.Values.ENVDASH}}postgres-service:5432/db0
+        envFrom:
+          - configMapRef:
+              name: oidc-configuration
+          - secretRef:
+              name: postgres-configuration
+      #volumes:
+      #  - name: {{.Values.ENVDASH}}ceevee-data
+          #persistentVolumeClaim:
+          #  claimName: ceevee-data
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  #type: NodePort
+  selector:
+    app: dependencyapi
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30001
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{.Values.ENVDASH}}api-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-route
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/rewrite-target: /
+  labels:
+    certbot-managed: 'true'
+spec:
+  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  path: "/api/v1"
+  to:
+    kind: Service
+    name: {{.Values.ENVDASH}}api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-policy
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: dependencyapi
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-external-policy
+spec:
+  podSelector: 
+    matchLabels:
+        app: dependencyapi
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: fett-secrets
+data:
+  ALPINE_OIDC_TEAM_SYNCHRONIZATION: Y2hhbmdlbWU= 
+  DOMAIN: Y2hhbmdlbWU=
+  API_BASE_URL: Y2hhbmdlbWU=
+  OIDC_CLIENT_ID: Y2hhbmdlbWU=
+  ALPINE_OIDC_CLIENT_ID: Y2hhbmdlbWU=
+  ALPINE_OIDC_TEAMS_CLAIM: Y2hhbmdlbWU=
+  ALPINE_OIDC_USERNAME_CLAIM: Y2hhbmdlbWU=
+  ALPINE_OIDC_ISSUER: Y2hhbmdlbWU=
+  ALPINE_OIDC_USER_PROVISIONING: Y2hhbmdlbWU=
+  OIDC_ISSUER: Y2hhbmdlbWU=
+  ALPINE_OIDC_ENABLED: Y2hhbmdlbWU=
