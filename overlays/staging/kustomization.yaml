@@ -1,4 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 resources:
   - ./../../base
 namePrefix: stag-
-namespace: staging
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/tasks/0/params/-
+        value: 
+            name: revision
+            value: master
+    target:
+      kind: Pipeline
