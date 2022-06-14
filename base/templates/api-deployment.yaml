@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres
+          image: postgresql
           ports:
           - containerPort: 5432
           envFrom:
@@ -37,9 +37,13 @@ spec:
           env:
           - name: POSTGRES_DB
             value: db0
-          #volumeMounts:
-          #- mountPath: "/var/lib/postgresql/data:z"
-          #  name: {{.Values.ENVDASH}}fett-data
+          volumeMounts:
+          - mountPath: "/var/lib/postgresql/data"
+            name: {{.Values.ENVDASH}}fett-data
+        securityContext:
+          runAsUser: 1004160000
+          runAsGroup: 1004160000
+          fsGroup: 1004160000
       #volumes:
       #  - name: {{.Values.ENVDASH}}fett-data
       #    persistentVolumeClaim:
