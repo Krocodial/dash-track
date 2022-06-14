@@ -39,10 +39,12 @@ spec:
           - secretRef:
               name: postgres-configuration
           env:
+          - name: PGDATA
+            value: /opt/pgdata
           - name: POSTGRES_DB
             value: db0
           volumeMounts:
-          - mountPath: "/var/lib/postgresql/data"
+          - mountPath: "/opt/pgdata"
             name: {{.Values.ENVDASH}}fett-data
       volumes:
         - name: {{.Values.ENVDASH}}fett-data
