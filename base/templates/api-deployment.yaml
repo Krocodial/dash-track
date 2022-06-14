@@ -26,6 +26,10 @@ spec:
       labels:
         app: postgres
     spec:
+      securityContext:
+        runAsUser: 1004160000
+        runAsGroup: 1004160000
+        fsGroup: 1004160000
       containers:
         - name: postgres
           image: postgresql
@@ -40,14 +44,10 @@ spec:
           volumeMounts:
           - mountPath: "/var/lib/postgresql/data"
             name: {{.Values.ENVDASH}}fett-data
-        securityContext:
-          runAsUser: 1004160000
-          runAsGroup: 1004160000
-          fsGroup: 1004160000
-      #volumes:
-      #  - name: {{.Values.ENVDASH}}fett-data
-      #    persistentVolumeClaim:
-      #      claimName: fett-data
+      volumes:
+        - name: {{.Values.ENVDASH}}fett-data
+          persistentVolumeClaim:
+            claimName: {{.Values.ENVDASH}}fett-data
 ---
 apiVersion: apps/v1
 kind: Deployment
