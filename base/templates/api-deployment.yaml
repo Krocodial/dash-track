@@ -51,6 +51,18 @@ spec:
           persistentVolumeClaim:
             claimName: {{.Values.ENVDASH}}fett-data
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
