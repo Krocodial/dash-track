@@ -44,7 +44,7 @@ spec:
           network.openshift.io/policy-group: ingress
   podSelector: 
     matchLabels:
-      eventlistener: dev-event-listener
+      eventlistener: test-event-listener
   policyTypes:
   - Ingress
 ---
@@ -79,24 +79,6 @@ spec:
           network.openshift.io/policy-group: ingress
   policyTypes:
   - Ingress
----
-# Source: base/templates/api-deployment.yaml
-kind: Secret
-apiVersion: v1
-metadata:
-  name: fett-secrets
-data:
-  ALPINE_OIDC_TEAM_SYNCHRONIZATION: Y2hhbmdlbWU= 
-  DOMAIN: Y2hhbmdlbWU=
-  API_BASE_URL: Y2hhbmdlbWU=
-  OIDC_CLIENT_ID: Y2hhbmdlbWU=
-  ALPINE_OIDC_CLIENT_ID: Y2hhbmdlbWU=
-  ALPINE_OIDC_TEAMS_CLAIM: Y2hhbmdlbWU=
-  ALPINE_OIDC_USERNAME_CLAIM: Y2hhbmdlbWU=
-  ALPINE_OIDC_ISSUER: Y2hhbmdlbWU=
-  ALPINE_OIDC_USER_PROVISIONING: Y2hhbmdlbWU=
-  OIDC_ISSUER: Y2hhbmdlbWU=
-  ALPINE_OIDC_ENABLED: Y2hhbmdlbWU=
 ---
 # Source: base/templates/api-deployment.yaml
 kind: PersistentVolumeClaim
@@ -205,11 +187,11 @@ spec:
             value: db0
           volumeMounts:
           - mountPath: "/var/lib/postgresql/data"
-            name: dev-fett-data
+            name: test-fett-data
       volumes:
-        - name: dev-fett-data
+        - name: test-fett-data
           persistentVolumeClaim:
-            claimName: dev-fett-data
+            claimName: test-fett-data
 ---
 # Source: base/templates/api-deployment.yaml
 apiVersion: apps/v1
@@ -252,14 +234,14 @@ spec:
         - containerPort: 8080
         env:
           - name: ALPINE_DATABASE_URL
-            value: jdbc:postgresql://dev-postgres-service:5432/db0
+            value: jdbc:postgresql://test-postgres-service:5432/db0
         envFrom:
           - configMapRef:
               name: oidc-configuration
           - secretRef:
               name: postgres-configuration
       #volumes:
-      #  - name: dev-ceevee-data
+      #  - name: test-ceevee-data
           #persistentVolumeClaim:
           #  claimName: ceevee-data
   strategy:
@@ -298,14 +280,14 @@ metadata:
   name: api-ingress
 spec:
   rules:
-    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: test-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dev-api-service
+                name: test-api-service
                 port:
                   number: 80
 ---
@@ -316,14 +298,14 @@ metadata:
   name: pipeline-ingress
 spec:
   rules:
-    - host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
+    - host: test-fett-pipeline.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: el-dev-event-listener
+                name: el-test-event-listener
                 port:
                   number: 80
 ---
@@ -334,14 +316,14 @@ metadata:
   name: track-ingress
 spec:
   rules:
-    - host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: test-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dev-track-service
+                name: test-track-service
                 port:
                   number: 80
 ---
@@ -360,7 +342,7 @@ spec:
         - kind: ClusterTriggerBinding
           ref: github-push
       template:
-        ref: dev-trigger-template-fett-pipeline
+        ref: test-trigger-template-fett-pipeline
 ---
 # Source: base/templates/pipeline.yaml
 apiVersion: tekton.dev/v1beta1
@@ -396,7 +378,7 @@ spec:
         name: git-clone
       workspaces:
         - name: output
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
     #- name: custom-helm-upgrade-from-repo
     #  params:
     #    - name: helm_repo
@@ -416,7 +398,7 @@ spec:
     #    - git-clone
     #  workspaces:
     #  - name: source
-    #    workspace: dev-fett-code-storage
+    #    workspace: test-fett-code-storage
     #  taskRef:
     #    kind: Task
     #    name: dev-custom-helm-upgrade-from-repo
@@ -438,7 +420,7 @@ spec:
         - name: overwrite_values
           value: ''
         - name: values_file
-          value: overlays/dev/values.yaml
+          value: overlays/test/values.yaml
         - name: helm_image
           value: >-
             docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
@@ -446,7 +428,7 @@ spec:
           value: ''
       workspaces:
       - name: source
-        workspace: dev-fett-code-storage
+        workspace: test-fett-code-storage
     - name: openshift-configuration-creation
       runAfter:
         - custom-helm-template
@@ -460,9 +442,9 @@ spec:
         name: openshift-client
       workspaces:
         - name: manifest-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
         - name: kubeconfig-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
     - name: openshift-fett-deployment
       runAfter:
         - openshift-configuration-creation
@@ -470,15 +452,15 @@ spec:
         - name: VERSION
           value: latest
         - name: SCRIPT
-          value: oc apply -k overlays/dev
+          value: oc apply -k overlays/test
       taskRef:
         kind: ClusterTask
         name: openshift-client
       workspaces:
         - name: manifest-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
         - name: kubeconfig-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
     - name: openshift-certbot-rollout
       runAfter:
         - openshift-fett-deployment
@@ -492,11 +474,11 @@ spec:
         name: openshift-client
       workspaces:
         - name: manifest-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
         - name: kubeconfig-dir
-          workspace: dev-fett-code-storage
+          workspace: test-fett-code-storage
   workspaces:
-    - name: dev-fett-code-storage
+    - name: test-fett-code-storage
 ---
 # Source: base/templates/api-deployment.yaml
 kind: Route
@@ -509,11 +491,11 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: test-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   path: "/api/v1"
   to:
     kind: Service
-    name: dev-api-service
+    name: test-api-service
     weight: 100
   port:
     targetPort: 8080
@@ -531,10 +513,10 @@ metadata:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
 spec:
-  host: dev-fett-pipeline.apps.silver.devops.gov.bc.ca
+  host: test-fett-pipeline.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: el-dev-event-listener
+    name: el-test-event-listener
     weight: 100
   port:
     targetPort: 8000
@@ -550,10 +532,10 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: test-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
-    name: dev-track-service
+    name: test-track-service
     weight: 100
   port:
     targetPort: 8080
@@ -692,16 +674,16 @@ spec:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
-        generateName: dev-fett-pipeline-
+        generateName: test-fett-pipeline-
         labels:
-          tekton.dev/pipeline: dev-fett-pipeline
+          tekton.dev/pipeline: test-fett-pipeline
       spec:
         params: []
         pipelineRef:
-          name: dev-fett-pipeline
+          name: test-fett-pipeline
         resources: []
         status: null
         workspaces:
-          - name: dev-fett-code-storage
+          - name: test-fett-code-storage
             persistentVolumeClaim:
-              claimName: dev-fett-code-storage
+              claimName: test-fett-code-storage

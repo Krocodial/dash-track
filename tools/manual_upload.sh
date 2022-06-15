@@ -2,13 +2,13 @@
 
 cat > payload.json <<__HERE__
 {
-  "project": "0d81e80b-7011-4c08-95b4-07254c7c4a9a",
+  "project": "d545b6f9-af11-4e06-8eeb-b3f41bbc6301",
   "bom": "$(cat output.xml |base64 -w 0 -)"
 }
 __HERE__
 
-curl -X "PUT" "https://dev-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca/api/v1/bom" \
+curl -X "PUT" "https://test-nrm-vulnerability-track.apps.silver.devops.gov.bc.ca/api/v1/bom" \
      -H 'Content-Type: application/json' \
-     -H 'X-API-Key: ...' \
+     -H 'X-Api-Key: 4gf3IVUHkmp5BO0iQv9SW9RgG969qr4H ' \
      -d @payload.json \
      --dump-header - 
