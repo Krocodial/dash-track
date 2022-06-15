@@ -26,10 +26,6 @@ spec:
       labels:
         app: postgres
     spec:
-      securityContext:
-        runAsUser: 1004160000
-        runAsGroup: 1004160000
-        fsGroup: 1004160000
       containers:
         - name: postgres
           image: postgres
