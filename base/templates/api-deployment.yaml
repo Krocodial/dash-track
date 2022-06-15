@@ -99,7 +99,7 @@ spec:
         - containerPort: 8080
         env:
           - name: ALPINE_DATABASE_URL
-            value: jdbc:postgres://{{.Values.ENVDASH}}postgres-service:5432/db0
+            value: jdbc:postgresql://{{.Values.ENVDASH}}postgres-service:5432/db0
         envFrom:
           - configMapRef:
               name: oidc-configuration
