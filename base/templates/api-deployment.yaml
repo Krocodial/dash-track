@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres
+          image: registry.redhat.io/rhscl/postgresql-13-rhel7
           ports:
           - containerPort: 5432
           envFrom:
@@ -36,11 +36,11 @@ spec:
               name: postgres-configuration
           env:
           - name: PGDATA
-            value: /var/lib/postgresql/data/pgdata
+            value: /var/lib/pgsql/data
           - name: POSTGRES_DB
             value: db0
           volumeMounts:
-          - mountPath: "/var/lib/postgresql/data"
+          - mountPath: "/var/lib/pgsql:Z"
             name: {{.Values.ENVDASH}}fett-data
       volumes:
         - name: {{.Values.ENVDASH}}fett-data
