@@ -40,7 +40,7 @@ spec:
           - name: POSTGRES_DB
             value: db0
           volumeMounts:
-          - mountPath: "/var/lib/pgsql:Z"
+          - mountPath: "/var/lib/pgsql"
             name: {{.Values.ENVDASH}}fett-data
       volumes:
         - name: {{.Values.ENVDASH}}fett-data
