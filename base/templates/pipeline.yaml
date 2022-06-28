@@ -186,7 +186,7 @@ spec:
         - git-clone
       taskRef:
         kind: Task
-        name: dev-custom-helm-template
+        name: {{.Values.ENVDASH}}custom-helm-template
       params:
         - name: charts_dir
           value: .
