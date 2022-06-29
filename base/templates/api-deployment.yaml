@@ -203,7 +203,7 @@ metadata:
     certbot-managed: 'true'
 spec:
   host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-  path: "/home"
+  path: "/api/home"
   to:
     kind: Service
     name: {{.Values.ENVDASH}}api-service
