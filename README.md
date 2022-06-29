@@ -1,8 +1,10 @@
-helm template base -f overlays/dev/values.yaml > base/fett.yaml | oc apply -k overlays/dev
+Openshift deployment of DT & Tekton/Helm/kustomize pipeline  
+  
+helm template base -f overlays/dev/values.yaml > base/fett.yaml | oc apply -k overlays/dev  
 
 
-Need to create role & binding for certbot as the pipeline won't have permission to modify RBAC
-`oc process -f base/cert-roles.yaml | oc create -f -`
+Need to create role & binding for certbot as the pipeline won't have permission to modify RBAC  
+`oc process -f base/cert-roles.yaml | oc create -f -`  
 
 
 Deploy the app & pipeline  
@@ -10,3 +12,5 @@ Deploy the app & pipeline
 `helm template base -f overlays/dev/values.yaml > base/fett.yaml`  
 `oc apply -k overlays/dev`  
 `oc process -f base/certbot.dc.yaml | oc apply -f -`  
+  
+  
