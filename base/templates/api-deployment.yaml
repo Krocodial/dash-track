@@ -149,7 +149,7 @@ metadata:
   name: api-route
   annotations:
     haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
-    haproxy.router.openshift.io/rewrite-target: /
+    #haproxy.router.openshift.io/rewrite-target: /
   labels:
     app: dependency-api
     certbot-managed: 'true'
@@ -179,7 +179,31 @@ metadata:
     certbot-managed: 'true'
 spec:
   host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
-  path: "/api/*"
+  path: "/.well-known"
+  to:
+    kind: Service
+    name: {{.Values.ENVDASH}}api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: api-home
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/rewrite-target: /
+  labels:
+    app: dependency-api
+    certbot-managed: 'true'
+spec:
+  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  path: "/home"
   to:
     kind: Service
     name: {{.Values.ENVDASH}}api-service
