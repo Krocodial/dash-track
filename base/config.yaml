@@ -4,6 +4,8 @@ apiVersion: template.openshift.io/v1
 metadata:
   name: postgres-config
 parameters:
+- name: ENV
+  required: false
 - name: APP_NAME
   required: true
   value: fett
@@ -42,6 +44,6 @@ objects:
     ALPINE_OIDC_USER_PROVISIONING: "true"
     ALPINE_OIDC_ENABLED: "true"
     DOMAIN: changeme
-    API_BASE_URL: changeme
+    API_BASE_URL: "${ENV}api-service"
     OIDC_CLIENT_ID: changeme
     OIDC_ISSUER: changeme
