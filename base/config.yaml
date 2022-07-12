@@ -4,8 +4,6 @@ apiVersion: template.openshift.io/v1
 metadata:
   name: postgres-config
 parameters:
-- name: ENV
-  required: false
 - name: APP_NAME
   required: true
   value: fett
