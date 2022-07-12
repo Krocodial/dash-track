@@ -43,7 +43,7 @@ metadata:
   name: track-ingress
 spec:
   rules:
-    - host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
@@ -63,7 +63,7 @@ metadata:
   labels:
     certbot-managed: 'true'
 spec:
-  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
   to:
     kind: Service
     name: {{.Values.ENVDASH}}track-service

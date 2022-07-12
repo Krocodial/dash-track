@@ -132,7 +132,7 @@ metadata:
   name: api-ingress
 spec:
   rules:
-    - host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+    - host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
       http:
         paths:
           - path: /
@@ -154,7 +154,7 @@ metadata:
     app: dependency-api
     certbot-managed: 'true'
 spec:
-  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
   path: "/api"
   to:
     kind: Service
@@ -178,7 +178,7 @@ metadata:
     app: dependency-api
     certbot-managed: 'true'
 spec:
-  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
   path: "/.well-known"
   to:
     kind: Service
@@ -203,7 +203,7 @@ metadata:
     app: dependency-api
     certbot-managed: 'true'
 spec:
-  host: {{.Values.ENVDASH}}nrm-vulnerability-track.apps.silver.devops.gov.bc.ca
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
   path: "/api/home"
   to:
     kind: Service
