@@ -1,0 +1,290 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata: 
+    name: {{.Values.ENVDASH}}fett-data
+    labels:
+        app: data
+        project: fett
+        environment: {{.Values.ENVIRONMENT}}
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: netapp-file-standard
+    resources:
+        requests:
+            storage: 15Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.ENVDASH}}fett-postgres-deployment
+  labels:
+    app: postgres-deployment
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      project: fett
+      environment: {{.Values.ENVIRONMENT}}
+  template:
+    metadata:
+      labels:
+        app: postgres
+        project: fett
+        environment: {{.Values.ENVIRONMENT}}
+    spec:
+      containers:
+        - name: postgres
+          image: registry.redhat.io/rhscl/postgresql-13-rhel7
+          ports:
+          - containerPort: 5432
+          envFrom:
+          - secretRef:
+              name: postgres-configuration
+          env:
+          - name: PGDATA
+            value: /var/lib/pgsql/data
+          - name: POSTGRES_DB
+            value: db0
+          volumeMounts:
+          - mountPath: "/var/lib/pgsql"
+            name: {{.Values.ENVDASH}}fett-data
+      volumes:
+        - name: {{.Values.ENVDASH}}fett-data
+          persistentVolumeClaim:
+            claimName: {{.Values.ENVDASH}}fett-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.ENVDASH}}fett-postgres-service
+  labels:
+    app: postgres-service
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  selector:
+    app: postgres
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-deployment
+  labels:
+    app: api
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fett-api
+  template:
+    metadata:
+      labels:
+        app: fett-api
+    spec:
+      containers:
+      - name: fett-api #requires 2 cores
+      #  volumeMounts:
+      #      - mountPath: /data
+      #        name: dev-ceevee-data
+        #strategy: 
+        #  type: Recreate #recreate b/c the api is super heavy
+        image: dependencytrack/apiserver
+        #env:
+        #  - name: ALPINE_DATABASE_URL
+        #    value: jdbc:h2:/data/.dependency-track/db
+        #  - name: ALPINE_DATA_DIRECTORY
+        #    value: /data/.dependency-track
+        resources:
+          requests:
+            memory: "4.5Gi"
+            cpu: "2"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        ports:
+        - containerPort: 8080
+        env:
+          - name: ALPINE_DATABASE_URL
+            value: jdbc:postgresql://{{.Values.ENVDASH}}postgres-service:5432/db0
+        envFrom:
+          - configMapRef:
+              name: oidc-configuration
+          - secretRef:
+              name: postgres-configuration
+      #volumes:
+      #  - name: {{.Values.ENVDASH}}ceevee-data
+          #persistentVolumeClaim:
+          #  claimName: ceevee-data
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-service
+  labels:
+    app: api-service
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  #type: NodePort
+  selector:
+    app: api
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      #nodePort: 30001
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-ingress
+  labels:
+    app: api-ingress
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  rules:
+    - host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{.Values.ENVDASH}}api-service
+                port:
+                  number: 80
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-route
+  annotations:
+    #haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/ip_whitelist: 142.22.0.0/16 142.23.0.0/16 142.24.0.0/16 142.25.0.0/16 142.26.0.0/16 142.27.0.0/16 142.28.0.0/16 142.29.0.0/16 142.30.0.0/16 142.31.0.0/16 142.32.0.0/16 142.33.0.0/16 142.34.0.0/16 142.35.0.0/16 142.36.0.0/16 184.66.242.159 204.103.55.21
+  labels:
+    app: api-route
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+    certbot-managed: 'true'
+spec:
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
+  path: "/api"
+  to:
+    kind: Service
+    name: {{.Values.ENVDASH}}api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-route-deep
+  labels:
+    app: api-route-deep
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+    certbot-managed: 'true'
+spec:
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
+  path: "/.well-known"
+  to:
+    kind: Service
+    name: {{.Values.ENVDASH}}fett-api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-home
+  annotations:
+    #haproxy.router.openshift.io/ip_whitelist: 184.66.242.159 142.34.143.128/26 142.32.0.0/16 142.34.208.209 142.34.40.0/24 204.103.55.21 142.29.82.93
+    haproxy.router.openshift.io/ip_whitelist: 142.22.0.0/16 142.23.0.0/16 142.24.0.0/16 142.25.0.0/16 142.26.0.0/16 142.27.0.0/16 142.28.0.0/16 142.29.0.0/16 142.30.0.0/16 142.31.0.0/16 142.32.0.0/16 142.33.0.0/16 142.34.0.0/16 142.35.0.0/16 142.36.0.0/16 184.66.242.159 204.103.55.21
+    haproxy.router.openshift.io/rewrite-target: /
+  labels:
+    app: api-home
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+    certbot-managed: 'true'
+spec:
+  host: {{.Values.ENVDASH}}fett.apps.silver.devops.gov.bc.ca
+  path: "/api/home"
+  to:
+    kind: Service
+    name: {{.Values.ENVDASH}}fett-api-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-policy
+  labels:
+    app: api-policy
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: 
+        matchLabels:
+            app: fett-api
+            project: fett
+            environment: {{.Values.ENVIRONMENT}}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{.Values.ENVDASH}}fett-api-external-policy
+  labels:
+    app: api-external-policy
+    project: fett
+    environment: {{.Values.ENVIRONMENT}}
+spec:
+  podSelector: 
+    matchLabels:
+        app: fett-api
+        project: fett
+        environment: {{.Values.ENVIRONMENT}}
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  policyTypes:
+  - Ingress

@@ -1,0 +1,12 @@
+apiVersion: warden.devops.gov.bc.ca/v1alpha1
+kind: GitOpsTeam
+metadata:
+  name: gitopsteam-461a32
+  namespace: 461a32-tools
+spec:
+  gitOpsMembers:
+    admins:
+    - krocodial
+  projectMembers:
+    maintainers:
+    - krocodial@github
